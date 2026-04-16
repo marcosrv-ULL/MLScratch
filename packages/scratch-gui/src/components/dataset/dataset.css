@@ -1,0 +1,241 @@
+@import "../../css/colors.css";
+@import "../../css/units.css";
+
+.editor-container {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    padding: calc(2 * $space);
+    background-color: $ui-white;
+    
+    /* Crucial para que los hijos absolutos sepan dónde están los límites */
+    position: relative;
+    height: 100%;
+}
+
+.row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: calc(2 * $space);
+    /* Evita que la fila superior se encoja si el espacio se agota */
+    flex-shrink: 0; 
+}
+
+.input-group {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding-right: calc(2 * $space);
+    border-right: 1px dashed $ui-black-transparent;
+    margin-right: calc(2 * $space);
+}
+
+.input-group:last-child {
+    border-right: none;
+}
+
+.dropdown {
+    height: 2rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    border: 1px solid $ui-black-transparent;
+    font-size: 0.85rem;
+    font-family: inherit;
+    background-color: white;
+    margin-left: 0.5rem;
+    cursor: pointer;
+}
+
+.badge {
+    background-color: $ui-black-transparent;
+    color: $text-primary;
+    padding: 0.25rem 0.5rem;
+    border-radius: 1rem;
+    font-size: 0.75rem;
+    font-weight: bold;
+    margin-left: 1rem;
+}
+
+.button {
+    height: 2rem;
+    padding: 0.35rem 0.75rem;
+    outline: none;
+    background: white;
+    border-radius: 0.25rem;
+    border: 1px solid $ui-black-transparent;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: bold;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    margin-right: 0.5rem;
+    color: $text-primary;
+}
+
+.button:active {
+    background: $looks-transparent;
+}
+
+.button:hover {
+    background: $ui-white-dim;
+}
+
+.primary-button {
+    background: #0FBD8C;
+    border-color: rgba(0,0,0,0.1);
+    color: white;
+}
+
+.primary-button:hover {
+    background: #0A8562;
+}
+
+/* El truco de Scratch: Posicionamiento absoluto para el área de contenido */
+.scroll-wrapper {
+    position: relative;
+    flex-grow: 1;
+    width: 100%;
+}
+
+.dataset-container {
+    /* Estirarse a todos los bordes del scroll-wrapper */
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    
+    overflow-y: auto; /* Aquí ocurre la magia del scroll */
+    
+    background: hsla(160, 53%, 60%, 0.1);
+    border: 1px solid $ui-black-transparent;
+    border-radius: 5px;
+    padding: 1rem;
+}
+
+.dataset-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 1rem;
+    align-items: start;
+}
+
+.empty-message {
+    grid-column: 1 / -1;
+    text-align: center;
+    color: $text-primary-transparent;
+    font-style: italic;
+    margin-top: 2rem;
+}
+
+.card {
+    background: white;
+    border: 1px solid $ui-black-transparent;
+    border-radius: 0.5rem;
+    padding: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    position: relative;
+}
+
+.delete-btn {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: #ff4c4c;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 22px;
+    height: 22px;
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+
+.card:hover .delete-btn {
+    display: flex;
+}
+
+.image {
+    width: 100%;
+    height: 80px;
+    object-fit: contain;
+    border-radius: 0.25rem;
+    background-color: $ui-white-dim;
+    border: 1px dashed $ui-black-transparent;
+}
+
+.label {
+    margin-top: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: bold;
+    color: #0FBD8C;
+    word-break: break-all;
+    text-align: center;
+}
+
+.balance-container {
+    margin-bottom: calc(2 * $space);
+    padding: 1rem;
+    background: $ui-white;
+    border: 1px solid $ui-black-transparent;
+    border-radius: 5px;
+    /* Evita que el contenedor del gráfico se reduzca en pantallas pequeñas */
+    flex-shrink: 0; 
+}
+
+.balance-header {
+    font-size: 0.85rem;
+    color: $text-primary;
+    margin-bottom: 0.5rem;
+}
+
+.balance-bar {
+    display: flex;
+    height: 12px;
+    width: 100%;
+    background-color: $ui-black-transparent; /* Fondo gris si falla algo */
+    border-radius: 6px;
+    overflow: hidden; /* Evita que las esquinas coloreadas sobresalgan */
+    margin-bottom: 0.75rem;
+}
+
+.balance-segment {
+    height: 100%;
+    transition: width 0.3s ease; /* Animación suave al tomar fotos o borrar */
+}
+
+/* Añadimos un pequeño borde a la izquierda de cada segmento (excepto el primero) 
+   para separarlos visualmente aunque no haya hueco */
+.balance-segment + .balance-segment {
+    border-left: 2px solid $ui-white;
+}
+
+.balance-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    font-size: 0.75rem;
+    color: $text-primary;
+}
+
+.legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 0.3rem;
+    display: inline-block;
+}
