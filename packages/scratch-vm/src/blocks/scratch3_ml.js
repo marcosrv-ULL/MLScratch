@@ -56,8 +56,25 @@ class MLBlocks {
             ml_train_model: this.trainModel,
             ml_get_prediction: this.getPrediction,
             ml_get_confidence: this.getConfidence,
+            ml_move_canvas_area: this.moveCanvasArea, // New primitive
             //ml_create_dataset: this.createDataset,
         };
+    }
+
+    /**
+     * Updates the X and Y coordinates of the ML area without changing its dimensions.
+     */
+    moveCanvasArea(args, util) {
+        if (!this.isAreaDefined) {
+            // Cannot move an area that does not exist yet
+            return;
+        }
+
+        this.mlArea.x = Cast.toNumber(args.X);
+        this.mlArea.y = Cast.toNumber(args.Y);
+        
+        this._drawBoxOnCanvas(this.mlArea.x, this.mlArea.y, this.mlArea.width, this.mlArea.height);
+        this.runtime.requestRedraw();
     }
 
     learnCurrentArea(args, util) {

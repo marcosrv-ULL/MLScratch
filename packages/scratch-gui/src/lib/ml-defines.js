@@ -120,6 +120,27 @@ export default function defineMachineLearningBlocks(ScratchBlocks) {
         }
     };
 
+    ScratchBlocks.Blocks['ml_move_canvas_area'] = {
+        init: function () {
+            this.jsonInit({
+                "message0": "move area to x: %1 y: %2",
+                "args0": [
+                    {
+                        "type": "input_value",
+                        "name": "X"
+                    },
+                    {
+                        "type": "input_value",
+                        "name": "Y"
+                    }
+                ],
+                "category": "Machine Learning",
+                "colour": ML_COLOR,
+                "extensions": ["shape_statement"]
+            });
+        }
+    };
+
     // ml_get_confidence
     ScratchBlocks.Blocks['ml_get_confidence'] = {
         init: function () {

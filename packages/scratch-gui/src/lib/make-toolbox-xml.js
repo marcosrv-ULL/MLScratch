@@ -37,6 +37,19 @@ const machineLearning = function (isInitialSetup, isStage, targetId) {
             </value>
         </block>
 
+        <block type="ml_move_canvas_area">
+            <value name="X">
+                <shadow type="math_number">
+                    <field name="NUM">0</field>
+                </shadow>
+            </value>
+            <value name="Y">
+                <shadow type="math_number">
+                    <field name="NUM">0</field>
+                </shadow>
+            </value>
+        </block>
+
         <block type="ml_save_current_area">
             <value name="LABEL">
                 <shadow type="text">
