@@ -70,6 +70,47 @@ const machineLearning = function (isInitialSetup, isStage, targetId) {
                 </shadow>
             </value>
         </block>
+
+        <block type="ml_create_model">
+            <value name="MODEL_NAME">
+                <shadow type="text">
+                    <field name="TEXT">Vision</field>
+                </shadow>
+            </value>
+        </block>
+
+        <block type="ml_train_model_with_dataset">
+            <value name="MODEL_NAME">
+                <shadow type="text">
+                    <field name="TEXT">Vision</field>
+                </shadow>
+            </value>
+            <value name="DATASET_NAME">
+                <shadow type="text">
+                    <field name="TEXT">default</field>
+                </shadow>
+            </value>
+        </block>
+
+        <block type="ml_set_area_mode">
+            <field name="MODE">predict</field>
+        </block>
+
+        <block type="ml_get_prediction">
+            <value name="MODEL_NAME">
+                <shadow type="text">
+                    <field name="TEXT">Vision</field>
+                </shadow>
+            </value>
+        </block>
+
+        <block type="ml_make_prediction">
+            <value name="MODEL_NAME">
+                <shadow type="text">
+                    <field name="TEXT">Vision</field>
+                </shadow>
+            </value>
+        </block>
     </category>
     `;
 };

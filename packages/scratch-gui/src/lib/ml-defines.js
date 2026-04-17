@@ -141,6 +141,100 @@ export default function defineMachineLearningBlocks(ScratchBlocks) {
         }
     };
 
+    ScratchBlocks.Blocks['ml_create_model'] = {
+        init: function () {
+            this.jsonInit({
+                "message0": "create model named %1",
+                "args0": [
+                    {
+                        "type": "input_value",
+                        "name": "MODEL_NAME"
+                    }
+                ],
+                "category": "Machine Learning",
+                "colour": ML_COLOR,
+                "extensions": ["shape_statement"]
+            });
+        }
+    };
+
+    ScratchBlocks.Blocks['ml_train_model_with_dataset'] = {
+        init: function () {
+            this.jsonInit({
+                "message0": "train model %1 with dataset %2",
+                "args0": [
+                    {
+                        "type": "input_value",
+                        "name": "MODEL_NAME"
+                    },
+                    {
+                        "type": "input_value",
+                        "name": "DATASET_NAME"
+                    }
+                ],
+                "category": "Machine Learning",
+                "colour": ML_COLOR,
+                "extensions": ["shape_statement"]
+            });
+        }
+    };
+
+    ScratchBlocks.Blocks['ml_set_area_mode'] = {
+        init: function () {
+            this.jsonInit({
+                "message0": "set area mode to %1",
+                "args0": [
+                    {
+                        "type": "field_dropdown",
+                        "name": "MODE",
+                        "options": [
+                            ["training", "train"],
+                            ["prediction", "predict"]
+                        ]
+                    }
+                ],
+                "category": "Machine Learning",
+                "colour": ML_COLOR,
+                "extensions": ["shape_statement"]
+            });
+        }
+    };
+
+    ScratchBlocks.Blocks['ml_make_prediction'] = {
+        init: function () {
+            this.jsonInit({
+                "message0": "make prediction with model %1",
+                "args0": [
+                    {
+                        "type": "input_value",
+                        "name": "MODEL_NAME"
+                    }
+                ],
+                "category": "Machine Learning",
+                "colour": ML_COLOR,
+                "extensions": ["shape_statement"]
+            });
+        }
+    };
+
+    ScratchBlocks.Blocks['ml_get_prediction'] = {
+        init: function () {
+            this.jsonInit({
+                "message0": "last prediction of model %1",
+                "args0": [
+                    {
+                        "type": "input_value",
+                        "name": "MODEL_NAME"
+                    }
+                ],
+                "category": "Machine Learning",
+                "colour": ML_COLOR,
+                "output": "String", 
+                "outputShape": ScratchBlocks.OUTPUT_SHAPE_ROUND
+            });
+        }
+    };
+
     // ml_get_confidence
     ScratchBlocks.Blocks['ml_get_confidence'] = {
         init: function () {

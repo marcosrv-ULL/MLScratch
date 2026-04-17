@@ -10,113 +10,220 @@ class MLBlocks {
     constructor(runtime) {
         this.runtime = runtime;
 
+        this.runtime.mlModels = {};
+
         this.runtime.mlDatasets = {
-            'default': [] // Dataset inicial por defecto
+            'default': [] 
         };
-        // Nombre del dataset que el alumno está visualizando actualmente en la pestaña
+        
         this.runtime.currentSelectedDataset = 'default';
 
         this.mlArea = { x: 0, y: 0, width: 100, height: 100 };
         this.isAreaDefined = false;
-
-        this.runtime.mlDataset = []; 
-        this.isTrained = false;
         
-        this.classifier = null; 
         this._boxSkinId = null;
         this._boxDrawableId = null;
+        this.areaMode = 'train';
 
-        // --- NUEVO: Escuchar el botón de Stop (Bandera roja) ---
         this.runtime.on('PROJECT_STOP_ALL', this.onStopAll.bind(this));
+
+        // Dynamically load ml5.js for real machine learning capabilities
+        if (typeof window !== 'undefined' && !window.ml5) {
+            const script = document.createElement('script');
+            script.src = "https://unpkg.com/ml5@0.12.2/dist/ml5.min.js";
+            document.head.appendChild(script);
+            console.log("[ML Blocks] Injecting ml5.js library...");
+        }
     }
 
-    /**
-     * Limpia y oculta el área de Machine Learning cuando el usuario pulsa Stop.
-     */
     onStopAll() {
-        // Desactivamos el área lógicamente
         this.isAreaDefined = false;
-
-        // Ocultamos el recuadro visualmente en el canvas
         if (this._boxDrawableId !== null && this.runtime.renderer) {
             this.runtime.renderer.updateDrawableProperties(this._boxDrawableId, { visible: false });
             this.runtime.requestRedraw();
         }
     }
 
-    /**
-     * Retrieve the block primitives implemented by this package.
-     * @return {object.<string, Function>} Mapping of opcode to Function.
-     */
     getPrimitives() {
         return {
             ml_set_canvas_area: this.setCanvasArea,
-            ml_learn_from_costumes: this.learnFromCostumes,
+            ml_move_canvas_area: this.moveCanvasArea, 
+            ml_set_area_mode: this.setAreaMode,
+            
             ml_save_current_area: this.learnCurrentArea,
-            ml_train_model: this.trainModel,
+            ml_learn_from_costumes: this.learnFromCostumes,
+            
+            ml_create_model: this.createModel,
+            ml_train_model_with_dataset: this.trainModelWithDataset,
+            ml_make_prediction: this.makePrediction,
+            
             ml_get_prediction: this.getPrediction,
-            ml_get_confidence: this.getConfidence,
-            ml_move_canvas_area: this.moveCanvasArea, // New primitive
-            //ml_create_dataset: this.createDataset,
+            ml_get_confidence: this.getConfidence
         };
     }
 
     /**
-     * Updates the X and Y coordinates of the ML area without changing its dimensions.
+     * Initializes a new model instance.
      */
-    moveCanvasArea(args, util) {
-        if (!this.isAreaDefined) {
-            // Cannot move an area that does not exist yet
-            return;
-        }
-
-        this.mlArea.x = Cast.toNumber(args.X);
-        this.mlArea.y = Cast.toNumber(args.Y);
+    createModel(args, util) {
+        const modelName = Cast.toString(args.MODEL_NAME) || 'default_model';
         
-        this._drawBoxOnCanvas(this.mlArea.x, this.mlArea.y, this.mlArea.width, this.mlArea.height);
-        this.runtime.requestRedraw();
-    }
-
-    learnCurrentArea(args, util) {
-        if (!this.isAreaDefined) {
-            console.log("[ML Blocks] Error: ML area is not defined.");
-            return;
+        if (!this.runtime.mlModels[modelName]) {
+            this.runtime.mlModels[modelName] = {
+                id: modelName,
+                isTrained: false,
+                algorithm: 'MobileNet_FeatureExtractor', 
+                classifier: null, // Holds the actual ml5 instance
+                lastPrediction: "None", 
+                lastConfidence: 0
+            };
+            console.log(`[ML Blocks] Model '${modelName}' created.`);
         }
-
-        // 1. Hide the ML area visual box
-        if (this._boxDrawableId !== null) {
-            this.runtime.renderer.updateDrawableProperties(this._boxDrawableId, { visible: false });
-        }
-
-        // 2. Force a render step so the canvas updates WITHOUT the box
-        this.runtime.renderer.draw();
-
-        // Extract arguments from the Scratch block
-        const label = Cast.toString(args.LABEL);
-        // Read the new dataset input. Default to 'default' if empty.
-        const datasetName = Cast.toString(args.LABEL1) || 'default'; 
-        
-        const base64Image = this.extractImageFromArea(this.mlArea);
-        console.log("learn")
-        if (base64Image) {
-            // Use the internal method to route the image to the correct dataset array
-            this._saveToDataset(label, base64Image, datasetName);
-        } else {
-            console.log("[ML Blocks] Error: extractImageFromArea returned null.");
-        }
-
-        // 3. Restore the ML area visual box visibility
-        if (this._boxDrawableId !== null) {
-            this.runtime.renderer.updateDrawableProperties(this._boxDrawableId, { visible: true });
-            this.runtime.requestRedraw(); 
-        }
-
-        this.isTrained = false; 
     }
 
     /**
-     * Defines the bounding box on the canvas for feature extraction.
+     * Helper function to convert base64 to an HTMLImageElement needed by ml5.
      */
+    _base64ToImage(base64Str) {
+        return new Promise(resolve => {
+            const img = new Image();
+            img.onload = () => resolve(img);
+            img.src = base64Str;
+        });
+    }
+
+    /**
+     * Executes the training process using ml5.js Feature Extractor.
+     * Halts thread execution until the neural network finishes training.
+     */
+    async trainModelWithDataset(args, util) {
+        const modelName = Cast.toString(args.MODEL_NAME) || 'default_model';
+        const datasetName = Cast.toString(args.DATASET_NAME) || 'default';
+
+        const dataset = this.runtime.mlDatasets[datasetName];
+        const model = this.runtime.mlModels[modelName];
+
+        if (!dataset || dataset.length === 0) {
+            console.warn(`[ML Blocks] Cannot train: Dataset '${datasetName}' is empty.`);
+            return;
+        }
+
+        if (!model) {
+            console.warn(`[ML Blocks] Cannot train: Model '${modelName}' does not exist.`);
+            return;
+        }
+
+        if (!window.ml5) {
+            console.warn("[ML Blocks] ml5.js is not loaded yet. Try again in a moment.");
+            return;
+        }
+
+        console.log(`[ML Blocks] Starting training for '${modelName}'...`);
+        model.isTrained = false;
+
+        return new Promise(async (resolve) => {
+            // 1. Initialize the Feature Extractor
+            const featureExtractor = window.ml5.featureExtractor('MobileNet', {
+                numLabels: new Set(dataset.map(d => d.label)).size
+            });
+            
+            const classifier = featureExtractor.classification();
+            model.classifier = classifier;
+
+            // 2. Load all base64 images into HTML elements and add to classifier
+            const imagePromises = dataset.map(async (item) => {
+                const imgElement = await this._base64ToImage(item.image);
+                await classifier.addImage(imgElement, item.label);
+            });
+
+            await Promise.all(imagePromises);
+            console.log(`[ML Blocks] All ${dataset.length} images loaded into the model. Training...`);
+
+            // 3. Train the model
+            classifier.train((loss) => {
+                if (loss === null) {
+                    // Training complete
+                    model.isTrained = true;
+                    console.log(`[ML Blocks] Training complete for '${modelName}'!`);
+                    resolve(); 
+                } else {
+                    // Still training, logging loss can be useful for debugging
+                    console.log(`[ML Blocks] Training loss: ${loss}`);
+                }
+            });
+        });
+    }
+
+    /**
+     * Captures the area, runs the ml5 inference, and caches the result.
+     */
+    async makePrediction(args, util) {
+        const modelName = Cast.toString(args.MODEL_NAME) || 'default_model';
+        const model = this.runtime.mlModels[modelName];
+
+        if (!this.isAreaDefined || !model || !model.isTrained || !model.classifier) {
+            if (model) {
+                model.lastPrediction = "Not trained";
+                model.lastConfidence = 0;
+            }
+            return;
+        }
+
+        if (this._boxDrawableId !== null) {
+            this.runtime.renderer.updateDrawableProperties(this._boxDrawableId, { visible: false });
+        }
+        this.runtime.renderer.draw();
+
+        const base64Image = this.extractImageFromArea(this.mlArea);
+
+        if (this._boxDrawableId !== null) {
+            this.runtime.renderer.updateDrawableProperties(this._boxDrawableId, { visible: true });
+            this.runtime.requestRedraw();
+        }
+
+        if (!base64Image) return;
+
+        return new Promise(async (resolve) => {
+            const imgElement = await this._base64ToImage(base64Image);
+            
+            // Execute ml5 classification
+            model.classifier.classify(imgElement, (err, results) => {
+                if (err) {
+                    console.error("[ML Blocks] Inference error:", err);
+                    model.lastPrediction = "Error";
+                    model.lastConfidence = 0;
+                } else if (results && results.length > 0) {
+                    model.lastPrediction = results[0].label;
+                    // Convert confidence to a 0-100 percentage
+                    model.lastConfidence = Math.round(results[0].confidence * 100); 
+                }
+                resolve();
+            });
+        });
+    }
+
+    /**
+     * Instantly returns the cached prediction string.
+     */
+    getPrediction(args, util) {
+        const modelName = Cast.toString(args.MODEL_NAME) || 'default_model';
+        const model = this.runtime.mlModels[modelName];
+        if (!model) return "No model";
+        return model.lastPrediction;
+    }
+
+    /**
+     * Instantly returns the cached confidence percentage.
+     */
+    getConfidence(args, util) {
+        const modelName = Cast.toString(args.MODEL_NAME) || 'default_model';
+        const model = this.runtime.mlModels[modelName];
+        if (!model) return 0;
+        return model.lastConfidence;
+    }
+
+    /* --- CANVAS AND AREA MANAGEMENT --- */
+
     setCanvasArea(args, util) {
         this.mlArea = {
             x: Cast.toNumber(args.X),
@@ -125,57 +232,46 @@ class MLBlocks {
             height: Cast.toNumber(args.HEIGHT)
         };
         this.isAreaDefined = true;
-        
         this._drawBoxOnCanvas(this.mlArea.x, this.mlArea.y, this.mlArea.width, this.mlArea.height);
         this.runtime.requestRedraw();
     }
 
-    /**
-     * Creates or updates a dynamic SVG skin representing the ML scanning area.
-     */
-    /**
-     * Creates or updates a dynamic SVG skin representing the ML scanning area.
-     */
+    moveCanvasArea(args, util) {
+        if (!this.isAreaDefined) return;
+        this.mlArea.x = Cast.toNumber(args.X);
+        this.mlArea.y = Cast.toNumber(args.Y);
+        this._drawBoxOnCanvas(this.mlArea.x, this.mlArea.y, this.mlArea.width, this.mlArea.height);
+        this.runtime.requestRedraw();
+    }
+
+    setAreaMode(args, util) {
+        const mode = Cast.toString(args.MODE);
+        if (mode === 'predict' || mode === 'train') {
+            this.areaMode = mode;
+            if (this.isAreaDefined) {
+                this._drawBoxOnCanvas(this.mlArea.x, this.mlArea.y, this.mlArea.width, this.mlArea.height);
+                this.runtime.requestRedraw();
+            }
+        }
+    }
+
     _drawBoxOnCanvas(x, y, width, height) {
         const renderer = this.runtime.renderer;
         if (!renderer) return;
 
-        // Aseguramos un tamaño mínimo para que el texto "Input" siempre quepa
         const safeWidth = Math.max(75, width);
         const safeHeight = Math.max(40, height);
         const strokeWidth = 4;
 
+        const isPredict = (this.areaMode === 'predict');
+        const mainColor = isPredict ? '#4C97FF' : '#0FBD8C'; 
+        const bgColor = isPredict ? 'rgba(76, 151, 255, 0.15)' : 'rgba(15, 189, 140, 0.15)';
+        const labelText = isPredict ? 'Predict' : 'Input';
+
         const svgString = `<svg width="${safeWidth}" height="${safeHeight}" xmlns="http://www.w3.org/2000/svg">
-            <rect 
-                x="${strokeWidth / 2}" 
-                y="${strokeWidth / 2}" 
-                width="${safeWidth - strokeWidth}" 
-                height="${safeHeight - strokeWidth}" 
-                fill="rgba(15, 189, 140, 0.15)" 
-                stroke="#0FBD8C" 
-                stroke-width="${strokeWidth}" 
-                stroke-dasharray="10 10" 
-            />
-            
-            <rect 
-                x="${strokeWidth / 2}" 
-                y="${strokeWidth / 2}" 
-                width="65" 
-                height="26" 
-                fill="#0FBD8C" 
-            />
-            
-            <text 
-                x="${(strokeWidth / 2) + 32.5}" 
-                y="${(strokeWidth / 2) + 18}" 
-                font-family="Helvetica, Arial, sans-serif" 
-                font-size="14" 
-                font-weight="bold" 
-                fill="white" 
-                text-anchor="middle"
-            >
-                Input
-            </text>
+            <rect x="${strokeWidth / 2}" y="${strokeWidth / 2}" width="${safeWidth - strokeWidth}" height="${safeHeight - strokeWidth}" fill="${bgColor}" stroke="${mainColor}" stroke-width="${strokeWidth}" stroke-dasharray="10 10" />
+            <rect x="${strokeWidth / 2}" y="${strokeWidth / 2}" width="65" height="26" fill="${mainColor}" />
+            <text x="${(strokeWidth / 2) + 32.5}" y="${(strokeWidth / 2) + 18}" font-family="Helvetica, Arial, sans-serif" font-size="14" font-weight="bold" fill="white" text-anchor="middle">${labelText}</text>
         </svg>`;
 
         if (this._boxSkinId === null) {
@@ -185,40 +281,52 @@ class MLBlocks {
             renderer.updateSVGSkin(this._boxSkinId, svgString);
         }
 
-        renderer.updateDrawableProperties(this._boxDrawableId, {
-            skinId: this._boxSkinId,
-            position: [x, y],
-            visible: true
-        });
-
+        renderer.updateDrawableProperties(this._boxDrawableId, { skinId: this._boxSkinId, position: [x, y], visible: true });
         renderer.setDrawableOrder(this._boxDrawableId, Infinity);
     }
 
+    /* --- DATA COLLECTION --- */
+
     _saveToDataset(label, image, datasetName = 'default') {
-        // Auto-crear el dataset si no existe
         if (!this.runtime.mlDatasets[datasetName]) {
             this.runtime.mlDatasets[datasetName] = [];
         }
-
         this.runtime.mlDatasets[datasetName].push({
             id: Date.now() + Math.random(),
             label: label,
             image: image
         });
-        console.log(this.runtime.mlDatasets[datasetName])
-        // Actualizamos el puntero para que la GUI muestre el dataset que se está modificando
         this.runtime.currentSelectedDataset = datasetName;
     }
 
-    /**
-     * Iterates through all costumes of the current sprite, places them in the area,
-     * and extracts features to quickly build a dataset.
-     */
+    learnCurrentArea(args, util) {
+        if (!this.isAreaDefined) return;
+
+        if (this._boxDrawableId !== null) {
+            this.runtime.renderer.updateDrawableProperties(this._boxDrawableId, { visible: false });
+        }
+        this.runtime.renderer.draw();
+
+        const label = Cast.toString(args.LABEL);
+        const datasetName = Cast.toString(args.LABEL1) || 'default'; 
+        
+        const base64Image = this.extractImageFromArea(this.mlArea);
+        if (base64Image) {
+            this._saveToDataset(label, base64Image, datasetName);
+        }
+
+        if (this._boxDrawableId !== null) {
+            this.runtime.renderer.updateDrawableProperties(this._boxDrawableId, { visible: true });
+            this.runtime.requestRedraw(); 
+        }
+    }
+
     learnFromCostumes(args, util) {
         if (!this.isAreaDefined) return;
 
         const target = util.target;
         const label = Cast.toString(args.LABEL);
+        const datasetName = Cast.toString(args.DATASET) || 'default'; // Assumes block has DATASET argument
         
         const originalCostumeIndex = target.currentCostume;
         const originalX = target.x;
@@ -226,7 +334,6 @@ class MLBlocks {
 
         target.setXY(this.mlArea.x, this.mlArea.y);
 
-        // 1. Hide the ML area visual box during the entire batch process
         if (this._boxDrawableId !== null) {
             this.runtime.renderer.updateDrawableProperties(this._boxDrawableId, { visible: false });
         }
@@ -235,102 +342,49 @@ class MLBlocks {
 
         for (let i = 0; i < totalCostumes; i++) {
             target.setCostume(i);
-            
-            // Force render for each costume without the bounding box
             this.runtime.renderer.draw();
-            
             const base64Image = this.extractImageFromArea(this.mlArea);
             
             if (base64Image) {
-                this.runtime.mlDataset.push({
-                    id: Date.now() + Math.random(),
-                    label: label,
-                    image: base64Image
-                });
+                // FIXED: Now uses the proper dictionary storage system
+                this._saveToDataset(label, base64Image, datasetName);
             }
         }
 
-        // Restore target's original state
         target.setCostume(originalCostumeIndex);
         target.setXY(originalX, originalY);
         
-        // 2. Restore the ML area visual box visibility
         if (this._boxDrawableId !== null) {
             this.runtime.renderer.updateDrawableProperties(this._boxDrawableId, { visible: true });
             this.runtime.requestRedraw();
         }
-
-        this.isTrained = false;
     }
 
-    /**
-     * Executes the training algorithm on the accumulated dataset.
-     */
-    trainModel(args, util) {
-        if (this.runtime.mlDataset.length === 0) return;
-
-        return new Promise(resolve => {
-            setTimeout(() => {
-                this.isTrained = true;
-                resolve();
-            }, 500);
-        });
-    }
-
-    getPrediction(args, util) {
-        if (!this.isTrained || !this.isAreaDefined) return "Unknown";
-        return "Mock_Class_A"; 
-    }
-
-    getConfidence(args, util) {
-        if (!this.isTrained || !this.isAreaDefined) return 0;
-        return 95; 
-    }
-
-    /**
-     * Crops the specific region from the Scratch WebGL canvas and converts it to a Base64 image.
-     * @param {Object} area - The bounding box {x, y, width, height}
-     * @return {String} Base64 PNG image
-     */
-    /**
-     * Crops the specific region from the Scratch WebGL canvas and converts it to a Base64 image.
-     * @param {Object} area - The bounding box {x, y, width, height}
-     * @return {String} Base64 PNG image
-     */
     extractImageFromArea(area) {
         const renderer = this.runtime.renderer;
         if (!renderer || !renderer.canvas) return null;
 
         const sourceCanvas = renderer.canvas;
-        
         const tempCanvas = document.createElement('canvas');
         tempCanvas.width = area.width;
         tempCanvas.height = area.height;
         const ctx = tempCanvas.getContext('2d');
 
-        // 1. Escala entre la resolución lógica de Scratch (480x360) y la real del canvas WebGL en pantalla
         const scaleX = sourceCanvas.width / 480;
         const scaleY = sourceCanvas.height / 360;
 
-        // 2. En Scratch, 'area.x' y 'area.y' son el CENTRO del recuadro.
-        // Calculamos dónde está la esquina superior izquierda lógica de ese recuadro.
         const logicalStartX = 240 + area.x - (area.width / 2);
-        
-        // Cuidado con la Y: en Scratch la Y positiva va hacia arriba, en el canvas va hacia abajo.
-        // 180 es el centro vertical. Restamos la Y de Scratch y también la mitad del alto.
         const logicalStartY = 180 - area.y - (area.height / 2); 
         
-        // 3. Aplicamos la escala para pantallas de alta resolución (Retina/4K)
         const startX = logicalStartX * scaleX;
         const startY = logicalStartY * scaleY;
         const cropWidth = area.width * scaleX;
         const cropHeight = area.height * scaleY;
 
-        // 4. Copiamos exactamente ese cuadrante al canvas temporal
         ctx.drawImage(
             sourceCanvas, 
-            startX, startY, cropWidth, cropHeight, // Recorte original (Fuente)
-            0, 0, area.width, area.height          // Destino (Nuestro canvas temporal)
+            startX, startY, cropWidth, cropHeight, 
+            0, 0, area.width, area.height          
         );
 
         return tempCanvas.toDataURL('image/png');
