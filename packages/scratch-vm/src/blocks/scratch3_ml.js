@@ -27,6 +27,8 @@ class MLBlocks {
 
         this.runtime.on('PROJECT_STOP_ALL', this.onStopAll.bind(this));
 
+        this.runtime.on('AFTER_EXECUTE', this._forceOverlayOrder.bind(this));
+
         // Dynamically load ml5.js for real machine learning capabilities
         if (typeof window !== 'undefined' && !window.ml5) {
             const script = document.createElement('script');
@@ -63,21 +65,13 @@ class MLBlocks {
     }
 
     /**
-     * Initializes a new model instance.
+     * Forzar el orden del drawable para que el área de ML sea siempre un overlay superior.
+     * Se ejecuta después de cada tick de ejecución.
      */
-    createModel(args, util) {
-        const modelName = Cast.toString(args.MODEL_NAME) || 'default_model';
-        
-        if (!this.runtime.mlModels[modelName]) {
-            this.runtime.mlModels[modelName] = {
-                id: modelName,
-                isTrained: false,
-                algorithm: 'MobileNet_FeatureExtractor', 
-                classifier: null, // Holds the actual ml5 instance
-                lastPrediction: "None", 
-                lastConfidence: 0
-            };
-            console.log(`[ML Blocks] Model '${modelName}' created.`);
+    _forceOverlayOrder() {
+        if (this._boxDrawableId !== null && this.runtime.renderer) {
+            // El grupo 'super' o el uso de Infinity aseguran que esté por encima del canvas normal
+            this.runtime.renderer.setDrawableOrder(this._boxDrawableId, Infinity);
         }
     }
 
@@ -93,8 +87,31 @@ class MLBlocks {
     }
 
     /**
-     * Executes the training process using ml5.js Feature Extractor.
-     * Halts thread execution until the neural network finishes training.
+     * Initializes a new model instance with a specific algorithm.
+     */
+    createModel(args, util) {
+        const modelName = Cast.toString(args.MODEL_NAME) || 'default_model';
+        const modelType = Cast.toString(args.MODEL_TYPE) || 'NeuralNetwork';
+        
+        if (!this.runtime.mlModels[modelName]) {
+            this.runtime.mlModels[modelName] = {
+                id: modelName,
+                isTrained: false,
+                isTraining: false, 
+                currentLoss: null,
+                datasetUsed: null,
+                algorithm: modelType, // 'NeuralNetwork' or 'KNN'
+                classifier: null, 
+                featureExtractor: null, // Required specifically for KNN
+                lastPrediction: "None", 
+                lastConfidence: 0
+            };
+            console.log(`[ML Blocks] Model '${modelName}' created as ${modelType}.`);
+        }
+    }
+
+    /**
+     * Executes the training process based on the selected algorithm.
      */
     async trainModelWithDataset(args, util) {
         const modelName = Cast.toString(args.MODEL_NAME) || 'default_model';
@@ -103,59 +120,78 @@ class MLBlocks {
         const dataset = this.runtime.mlDatasets[datasetName];
         const model = this.runtime.mlModels[modelName];
 
-        if (!dataset || dataset.length === 0) {
-            console.warn(`[ML Blocks] Cannot train: Dataset '${datasetName}' is empty.`);
-            return;
-        }
+        if (!dataset || dataset.length === 0) return;
+        if (!model) return;
+        if (!window.ml5) return;
 
-        if (!model) {
-            console.warn(`[ML Blocks] Cannot train: Model '${modelName}' does not exist.`);
-            return;
-        }
-
-        if (!window.ml5) {
-            console.warn("[ML Blocks] ml5.js is not loaded yet. Try again in a moment.");
-            return;
-        }
-
-        console.log(`[ML Blocks] Starting training for '${modelName}'...`);
+        console.log(`[ML Blocks] Starting training for '${modelName}' using ${model.algorithm}...`);
+        
         model.isTrained = false;
+        model.isTraining = true;
+        model.datasetUsed = datasetName;
+        model.currentLoss = null;
 
         return new Promise(async (resolve) => {
-            // 1. Initialize the Feature Extractor
-            const featureExtractor = window.ml5.featureExtractor('MobileNet', {
-                numLabels: new Set(dataset.map(d => d.label)).size
-            });
             
-            const classifier = featureExtractor.classification();
-            model.classifier = classifier;
+            if (model.algorithm === 'NeuralNetwork') {
+                // --- NEURAL NETWORK TRAINING ---
+                const featureExtractor = window.ml5.featureExtractor('MobileNet', {
+                    numLabels: new Set(dataset.map(d => d.label)).size
+                });
+                
+                const classifier = featureExtractor.classification();
+                model.classifier = classifier;
 
-            // 2. Load all base64 images into HTML elements and add to classifier
-            const imagePromises = dataset.map(async (item) => {
-                const imgElement = await this._base64ToImage(item.image);
-                await classifier.addImage(imgElement, item.label);
-            });
+                const imagePromises = dataset.map(async (item) => {
+                    const imgElement = await this._base64ToImage(item.image);
+                    await classifier.addImage(imgElement, item.label);
+                });
 
-            await Promise.all(imagePromises);
-            console.log(`[ML Blocks] All ${dataset.length} images loaded into the model. Training...`);
+                await Promise.all(imagePromises);
 
-            // 3. Train the model
-            classifier.train((loss) => {
-                if (loss === null) {
-                    // Training complete
-                    model.isTrained = true;
-                    console.log(`[ML Blocks] Training complete for '${modelName}'!`);
-                    resolve(); 
-                } else {
-                    // Still training, logging loss can be useful for debugging
-                    console.log(`[ML Blocks] Training loss: ${loss}`);
-                }
-            });
+                classifier.train((loss) => {
+                    if (loss === null) {
+                        model.isTrained = true;
+                        model.isTraining = false;
+                        resolve(); 
+                    } else {
+                        model.currentLoss = loss;
+                    }
+                });
+
+            } else if (model.algorithm === 'KNN') {
+                // --- KNN TRAINING (Instant memory mapping) ---
+                
+                // 1. Load MobileNet as a generic feature extractor
+                const featureExtractor = await new Promise(res => {
+                    const fe = window.ml5.featureExtractor('MobileNet', () => res(fe));
+                });
+                
+                // 2. Initialize KNN
+                const knn = window.ml5.KNNClassifier();
+                model.classifier = knn;
+                model.featureExtractor = featureExtractor;
+
+                // 3. Map images to spatial features and add to KNN
+                const imagePromises = dataset.map(async (item) => {
+                    const imgElement = await this._base64ToImage(item.image);
+                    const features = featureExtractor.infer(imgElement);
+                    knn.addExample(features, item.label);
+                });
+
+                await Promise.all(imagePromises);
+
+                // KNN trains instantly, no loss curve
+                model.isTrained = true;
+                model.isTraining = false;
+                model.currentLoss = 0; // KNN doesn't use loss
+                resolve();
+            }
         });
     }
 
     /**
-     * Captures the area, runs the ml5 inference, and caches the result.
+     * Captures the area and runs inference depending on the algorithm type.
      */
     async makePrediction(args, util) {
         const modelName = Cast.toString(args.MODEL_NAME) || 'default_model';
@@ -186,19 +222,35 @@ class MLBlocks {
         return new Promise(async (resolve) => {
             const imgElement = await this._base64ToImage(base64Image);
             
-            // Execute ml5 classification
-            model.classifier.classify(imgElement, (err, results) => {
-                if (err) {
-                    console.error("[ML Blocks] Inference error:", err);
-                    model.lastPrediction = "Error";
-                    model.lastConfidence = 0;
-                } else if (results && results.length > 0) {
-                    model.lastPrediction = results[0].label;
-                    // Convert confidence to a 0-100 percentage
-                    model.lastConfidence = Math.round(results[0].confidence * 100); 
-                }
-                resolve();
-            });
+            if (model.algorithm === 'NeuralNetwork') {
+                // Neural Network Inference
+                model.classifier.classify(imgElement, (err, results) => {
+                    if (err) {
+                        model.lastPrediction = "Error";
+                        model.lastConfidence = 0;
+                    } else if (results && results.length > 0) {
+                        model.lastPrediction = results[0].label;
+                        model.lastConfidence = Math.round(results[0].confidence * 100); 
+                    }
+                    resolve();
+                });
+
+            } else if (model.algorithm === 'KNN') {
+                // KNN Inference
+                const features = model.featureExtractor.infer(imgElement);
+                model.classifier.classify(features, (err, result) => {
+                    if (err) {
+                        model.lastPrediction = "Error";
+                        model.lastConfidence = 0;
+                    } else if (result) {
+                        model.lastPrediction = result.label;
+                        // ml5 KNN returns a confidencesByLabel object
+                        const confidence = result.confidencesByLabel[result.label] || 0;
+                        model.lastConfidence = Math.round(confidence * 100);
+                    }
+                    resolve();
+                });
+            }
         });
     }
 
@@ -221,8 +273,6 @@ class MLBlocks {
         if (!model) return 0;
         return model.lastConfidence;
     }
-
-    /* --- CANVAS AND AREA MANAGEMENT --- */
 
     setCanvasArea(args, util) {
         this.mlArea = {
@@ -282,7 +332,7 @@ class MLBlocks {
         }
 
         renderer.updateDrawableProperties(this._boxDrawableId, { skinId: this._boxSkinId, position: [x, y], visible: true });
-        renderer.setDrawableOrder(this._boxDrawableId, Infinity);
+        renderer.setDrawableOrder(this._boxDrawableId, Infinity); // Se mantiene aquí para la creación inicial
     }
 
     /* --- DATA COLLECTION --- */

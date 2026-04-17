@@ -144,8 +144,16 @@ export default function defineMachineLearningBlocks(ScratchBlocks) {
     ScratchBlocks.Blocks['ml_create_model'] = {
         init: function () {
             this.jsonInit({
-                "message0": "create model named %1",
+                "message0": "create %1 model named %2",
                 "args0": [
+                    {
+                        "type": "field_dropdown",
+                        "name": "MODEL_TYPE",
+                        "options": [
+                            ["Neural Network", "NeuralNetwork"],
+                            ["K-Nearest Neighbors", "KNN"]
+                        ]
+                    },
                     {
                         "type": "input_value",
                         "name": "MODEL_NAME"

@@ -62,7 +62,10 @@ const machineLearning = function (isInitialSetup, isStage, targetId) {
                 </shadow>
             </value>
         </block>
-
+        <block type="ml_set_area_mode">
+            <field name="MODE">predict</field>
+        </block>
+        ${blockSeparator}
         <block type="ml_create_dataset">
             <value name="LABEL">
                 <shadow type="text">
@@ -70,8 +73,9 @@ const machineLearning = function (isInitialSetup, isStage, targetId) {
                 </shadow>
             </value>
         </block>
-
+        ${blockSeparator}
         <block type="ml_create_model">
+            <field name="MODEL_TYPE">NeuralNetwork</field>
             <value name="MODEL_NAME">
                 <shadow type="text">
                     <field name="TEXT">Vision</field>
@@ -91,11 +95,7 @@ const machineLearning = function (isInitialSetup, isStage, targetId) {
                 </shadow>
             </value>
         </block>
-
-        <block type="ml_set_area_mode">
-            <field name="MODE">predict</field>
-        </block>
-
+        ${blockSeparator}
         <block type="ml_get_prediction">
             <value name="MODEL_NAME">
                 <shadow type="text">
