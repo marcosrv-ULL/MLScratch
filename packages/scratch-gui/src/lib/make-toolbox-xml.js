@@ -47,6 +47,12 @@ const machineLearning = function (isInitialSetup, isStage, targetId) {
             </value>
         </block>
 
+        <block type="ml_move_canvas_area_to">
+            <value name="TARGET">
+                <shadow type="ml_goto_menu"></shadow>
+            </value>
+        </block>
+
         <block type="ml_save_current_area">
             <value name="LABEL">
                 <shadow type="text"><field name="TEXT">Class A</field></shadow>
@@ -79,7 +85,7 @@ const machineLearning = function (isInitialSetup, isStage, targetId) {
 
         <block type="ml_train_model_with_dataset">
             <value name="MODEL_NAME">
-                <shadow type="text"><field name="TEXT">Vision</field></shadow>
+                <shadow type="ml_model_menu"></shadow>
             </value>
             <value name="DATASET_NAME">
                 <shadow type="text"><field name="TEXT">default</field></shadow>
@@ -90,13 +96,13 @@ const machineLearning = function (isInitialSetup, isStage, targetId) {
         
         <block type="ml_get_prediction">
             <value name="MODEL_NAME">
-                <shadow type="text"><field name="TEXT">Vision</field></shadow>
+                <shadow type="ml_model_menu"></shadow>
             </value>
         </block>
 
         <block type="ml_make_prediction">
             <value name="MODEL_NAME">
-                <shadow type="text"><field name="TEXT">Vision</field></shadow>
+                <shadow type="ml_model_menu"></shadow>
             </value>
         </block>
         `}

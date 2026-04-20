@@ -105,6 +105,8 @@ export default function defineMachineLearningBlocks(ScratchBlocks) {
         }
     };
 
+    
+
     // --- REPORTER BLOCKS (VALUES) ---
 
     // ml_get_prediction
@@ -138,6 +140,105 @@ export default function defineMachineLearningBlocks(ScratchBlocks) {
                 "colour": ML_COLOR,
                 "extensions": ["shape_statement"]
             });
+        }
+    };
+
+    ScratchBlocks.Blocks['ml_goto_menu'] = {
+        init: function () {
+            // Dynamic function to fetch sprites from the Scratch VM
+            var getOptions = function () {
+                var options = [
+                    ['puntero del ratón', '_mouse_'],
+                ];
+                if (typeof window !== 'undefined' && window.vm) {
+                    var targets = window.vm.runtime.targets;
+                    for (var i = 0; i < targets.length; i++) {
+                        var target = targets[i];
+                        // Exclude the stage and clone targets
+                        if (!target.isStage && target.isOriginal) {
+                            options.push([target.sprite.name, target.sprite.name]);
+                        }
+                    }
+                }
+                return options;
+            };
+
+            this.appendDummyInput()
+                .appendField(new ScratchBlocks.FieldDropdown(getOptions), 'TARGET');
+            
+            // Apply the custom Machine Learning color
+            this.setColour(ML_COLOR); 
+            this.setOutput(true, 'String');
+            this.setOutputShape(ScratchBlocks.OUTPUT_SHAPE_ROUND);
+        }
+    };
+
+    ScratchBlocks.Blocks['ml_move_canvas_area_to'] = {
+        init: function () {
+            this.jsonInit({
+                "message0": "move area to %1",
+                "args0": [
+                    {
+                        "type": "input_value",
+                        "name": "TARGET"
+                    }
+                ],
+                "category": "Machine Learning",
+                "colour": ML_COLOR,
+                "extensions": ["shape_statement"]
+            });
+        }
+    };
+
+    ScratchBlocks.Blocks['ml_set_area_mode'] = {
+        init: function () {
+            this.jsonInit({
+                "message0": "set area mode to %1",
+                "args0": [
+                    {
+                        "type": "field_dropdown",
+                        "name": "MODE",
+                        "options": [
+                            ["training", "train"],
+                            ["prediction", "predict"]
+                        ]
+                    }
+                ],
+                "category": "Machine Learning",
+                "colour": ML_COLOR,
+                "extensions": ["shape_statement"]
+            });
+        }
+    };
+
+
+    ScratchBlocks.Blocks['ml_model_menu'] = {
+        init: function () {
+            // Dynamic function to fetch active models from the VM
+            var getOptions = function () {
+                var options = [];
+                if (typeof window !== 'undefined' && window.vm && window.vm.runtime.mlModels) {
+                    var models = window.vm.runtime.mlModels;
+                    var keys = Object.keys(models);
+                    for (var i = 0; i < keys.length; i++) {
+                        options.push([keys[i], keys[i]]);
+                    }
+                }
+                
+                // Fallback option if no models are created yet
+                if (options.length === 0) {
+                    options.push(['No model', 'No model']); 
+                }
+                
+                return options;
+            };
+
+            this.appendDummyInput()
+                .appendField(new ScratchBlocks.FieldDropdown(getOptions), 'MODEL_NAME');
+            
+            this.setColour(ML_COLOR); 
+            this.setOutput(true, 'String');
+            this.setOutputShape(ScratchBlocks.OUTPUT_SHAPE_ROUND);
         }
     };
 
@@ -187,26 +288,8 @@ export default function defineMachineLearningBlocks(ScratchBlocks) {
         }
     };
 
-    ScratchBlocks.Blocks['ml_set_area_mode'] = {
-        init: function () {
-            this.jsonInit({
-                "message0": "set area mode to %1",
-                "args0": [
-                    {
-                        "type": "field_dropdown",
-                        "name": "MODE",
-                        "options": [
-                            ["training", "train"],
-                            ["prediction", "predict"]
-                        ]
-                    }
-                ],
-                "category": "Machine Learning",
-                "colour": ML_COLOR,
-                "extensions": ["shape_statement"]
-            });
-        }
-    };
+
+    
 
     ScratchBlocks.Blocks['ml_make_prediction'] = {
         init: function () {

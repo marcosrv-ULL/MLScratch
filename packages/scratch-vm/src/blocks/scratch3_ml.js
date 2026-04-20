@@ -51,7 +51,8 @@ class MLBlocks {
     getPrimitives() {
         return {
             ml_set_canvas_area: this.setCanvasArea,
-            ml_move_canvas_area: this.moveCanvasArea, 
+            ml_move_canvas_area: this.moveCanvasArea,
+            ml_move_canvas_area_to: this.moveCanvasAreaTo, 
             ml_set_area_mode: this.setAreaMode,
             
             ml_save_current_area: this.learnCurrentArea,
@@ -311,6 +312,43 @@ class MLBlocks {
         if (!this.isAreaDefined) return;
         this.mlArea.x = Cast.toNumber(args.X);
         this.mlArea.y = Cast.toNumber(args.Y);
+        this._drawBoxOnCanvas(this.mlArea.x, this.mlArea.y, this.mlArea.width, this.mlArea.height);
+        this.runtime.requestRedraw();
+    }
+
+    /**
+     * Moves the ML area to the exact coordinates of a specific sprite, 
+     * the mouse pointer, or a random position.
+     */
+    moveCanvasAreaTo(args, util) {
+        if (!this.isAreaDefined) return;
+
+        const targetName = Cast.toString(args.TARGET);
+        let newX = this.mlArea.x;
+        let newY = this.mlArea.y;
+
+        if (targetName === '_mouse_') {
+            // Retrieve mouse coordinates from Scratch IO
+            newX = util.ioQuery('mouse', 'getScratchX');
+            newY = util.ioQuery('mouse', 'getScratchY');
+        } else if (targetName === '_random_') {
+            // Generate random coordinates within standard stage boundaries
+            newX = Math.round(Math.random() * 480 - 240);
+            newY = Math.round(Math.random() * 360 - 180);
+        } else {
+            // Lookup the sprite by its name in the VM runtime
+            const targetSprite = this.runtime.getSpriteTargetByName(targetName);
+            if (targetSprite) {
+                newX = targetSprite.x;
+                newY = targetSprite.y;
+            } else {
+                // Target not found (might have been deleted), abort movement
+                return;
+            }
+        }
+
+        this.mlArea.x = newX;
+        this.mlArea.y = newY;
         this._drawBoxOnCanvas(this.mlArea.x, this.mlArea.y, this.mlArea.width, this.mlArea.height);
         this.runtime.requestRedraw();
     }
