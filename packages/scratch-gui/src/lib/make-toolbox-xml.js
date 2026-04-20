@@ -7,113 +7,103 @@ const blockSeparator = '<sep gap="36"/>'; // At default scale, about 28px
 
 /* eslint-disable no-unused-vars */
 const machineLearning = function (isInitialSetup, isStage, targetId) {
-    // Hardcoded colors for the Machine Learning category
-    const color = "#0FBD8C"; 
-    const secondaryColor = "#0A8562"; 
+    // Active category colors
+    const activeColor = "#0FBD8C"; 
+    const activeSecondaryColor = "#0A8562";
+    
+    // Disabled category color
+    const disabledColor = "#a3a3a3"; 
+
+    // Determine colors based on target type
+    const currentColor = isStage ? activeColor : disabledColor;
+    const currentSecondary = isStage ? activeSecondaryColor : disabledColor;
 
     return `
-    <category name="Machine Learning" id="machine_learning" colour="${color}" secondaryColour="${secondaryColor}">
-        
+    <category name="Machine Learning" id="machine_learning" colour="${currentColor}" secondaryColour="${currentSecondary}">
+        ${!isStage ? `
+        <label text=""></label>
+        ` : `
         <block type="ml_set_canvas_area">
             <value name="X">
-                <shadow type="math_number">
-                    <field name="NUM">0</field>
-                </shadow>
+                <shadow type="math_number"><field name="NUM">0</field></shadow>
             </value>
             <value name="Y">
-                <shadow type="math_number">
-                    <field name="NUM">0</field>
-                </shadow>
+                <shadow type="math_number"><field name="NUM">0</field></shadow>
             </value>
             <value name="WIDTH">
-                <shadow type="math_number">
-                    <field name="NUM">100</field>
-                </shadow>
+                <shadow type="math_number"><field name="NUM">100</field></shadow>
             </value>
             <value name="HEIGHT">
-                <shadow type="math_number">
-                    <field name="NUM">100</field>
-                </shadow>
+                <shadow type="math_number"><field name="NUM">100</field></shadow>
             </value>
         </block>
 
         <block type="ml_move_canvas_area">
             <value name="X">
-                <shadow type="math_number">
-                    <field name="NUM">0</field>
-                </shadow>
+                <shadow type="math_number"><field name="NUM">0</field></shadow>
             </value>
             <value name="Y">
-                <shadow type="math_number">
-                    <field name="NUM">0</field>
-                </shadow>
+                <shadow type="math_number"><field name="NUM">0</field></shadow>
             </value>
         </block>
 
         <block type="ml_save_current_area">
             <value name="LABEL">
-                <shadow type="text">
-                    <field name="TEXT">Class A</field>
-                </shadow>
+                <shadow type="text"><field name="TEXT">Class A</field></shadow>
             </value>
             <value name="LABEL1">
-                <shadow type="text">
-                    <field name="TEXT">Dataset</field>
-                </shadow>
+                <shadow type="text"><field name="TEXT">Dataset</field></shadow>
             </value>
         </block>
+        
         <block type="ml_set_area_mode">
             <field name="MODE">predict</field>
         </block>
+        
         ${blockSeparator}
+        
         <block type="ml_create_dataset">
             <value name="LABEL">
-                <shadow type="text">
-                    <field name="TEXT">Class A</field>
-                </shadow>
+                <shadow type="text"><field name="TEXT">Class A</field></shadow>
             </value>
         </block>
+        
         ${blockSeparator}
+        
         <block type="ml_create_model">
             <field name="MODEL_TYPE">NeuralNetwork</field>
             <value name="MODEL_NAME">
-                <shadow type="text">
-                    <field name="TEXT">Vision</field>
-                </shadow>
+                <shadow type="text"><field name="TEXT">Vision</field></shadow>
             </value>
         </block>
 
         <block type="ml_train_model_with_dataset">
             <value name="MODEL_NAME">
-                <shadow type="text">
-                    <field name="TEXT">Vision</field>
-                </shadow>
+                <shadow type="text"><field name="TEXT">Vision</field></shadow>
             </value>
             <value name="DATASET_NAME">
-                <shadow type="text">
-                    <field name="TEXT">default</field>
-                </shadow>
+                <shadow type="text"><field name="TEXT">default</field></shadow>
             </value>
         </block>
+        
         ${blockSeparator}
+        
         <block type="ml_get_prediction">
             <value name="MODEL_NAME">
-                <shadow type="text">
-                    <field name="TEXT">Vision</field>
-                </shadow>
+                <shadow type="text"><field name="TEXT">Vision</field></shadow>
             </value>
         </block>
 
         <block type="ml_make_prediction">
             <value name="MODEL_NAME">
-                <shadow type="text">
-                    <field name="TEXT">Vision</field>
-                </shadow>
+                <shadow type="text"><field name="TEXT">Vision</field></shadow>
             </value>
         </block>
+        `}
     </category>
     `;
 };
+
 
 /* eslint-disable no-unused-vars */
 const motion = function (isInitialSetup, isStage, targetId, colors) {

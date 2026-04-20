@@ -1,0 +1,280 @@
+@import "../../css/colors.css";
+@import "../../css/units.css";
+
+.editor-container {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    background-color: $ui-white;
+    height: 100%;
+}
+
+.layout {
+    display: flex;
+    flex-direction: row;
+    height: 100%;
+    width: 100%;
+}
+
+/* SIDEBAR STYLES */
+.sidebar {
+    width: 250px;
+    background-color: #f7f9fa;
+    border-right: 1px solid $ui-black-transparent;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+}
+
+.sidebar-header {
+    padding: 1rem;
+    border-bottom: 1px solid $ui-black-transparent;
+}
+
+.sidebar-header h3 {
+    margin: 0;
+    color: $text-primary;
+    font-size: 1rem;
+}
+
+.model-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    overflow-y: auto;
+    flex-grow: 1;
+}
+
+.empty-list {
+    padding: 1rem;
+    color: $text-primary-transparent;
+    font-style: italic;
+    font-size: 0.85rem;
+    text-align: center;
+}
+
+.list-item {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid $ui-black-transparent;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.list-item:hover {
+    background-color: $ui-white;
+}
+
+.list-item-selected {
+    background-color: #e6f0ff;
+    border-left: 4px solid #4C97FF;
+}
+
+.list-item-name {
+    font-weight: bold;
+    color: $text-primary;
+    margin-bottom: 0.25rem;
+}
+
+.list-item-status {
+    font-size: 0.75rem;
+    color: $text-primary-transparent;
+}
+
+/* MAIN DASHBOARD STYLES */
+.main-content {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 1.5rem;
+    background-color: $ui-white;
+}
+
+.no-selection {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    color: $text-primary-transparent;
+    font-size: 1.2rem;
+}
+
+.dash-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid $ui-black-transparent;
+}
+
+.dash-title {
+    margin: 0 0 0.25rem 0;
+    font-size: 1.8rem;
+    color: #4C97FF;
+}
+
+.dash-subtitle {
+    font-size: 0.9rem;
+    color: $text-primary;
+}
+
+.button {
+    padding: 0.5rem 1rem;
+    border-radius: 0.25rem;
+    border: 1px solid $ui-black-transparent;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 0.9rem;
+}
+
+.primary-button {
+    background-color: #0FBD8C;
+    color: white;
+    border: none;
+}
+
+.primary-button:disabled {
+    background-color: #a6ebd7;
+    cursor: not-allowed;
+}
+
+.info-row {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.info-card {
+    flex: 1;
+    background: #fdfdfd;
+    border: 1px solid $ui-black-transparent;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.info-card h4 {
+    margin: 0 0 0.75rem 0;
+    color: $text-primary;
+    font-size: 1rem;
+    border-bottom: 1px dashed $ui-black-transparent;
+    padding-bottom: 0.25rem;
+}
+
+.info-card p {
+    margin: 0.5rem 0;
+    font-size: 0.85rem;
+    color: $text-primary;
+}
+
+.muted-text {
+    color: $text-primary-transparent !important;
+    font-style: italic;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 12px;
+    border-radius: 6px;
+    margin-top: 0.5rem;
+}
+
+/* DIDACTIC ARCHITECTURE STYLES */
+.arch-section {
+    background: #fdfdfd;
+    border: 1px solid $ui-black-transparent;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.arch-section h4 {
+    margin: 0 0 1rem 0;
+    color: $text-primary;
+}
+
+.architecture-diagram {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem;
+    background-color: #f0f4f8;
+    border-radius: 0.5rem;
+}
+
+.arch-node {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+}
+
+.node-box {
+    background-color: white;
+    border: 2px solid #ccc;
+    border-radius: 8px;
+    padding: 0.75rem;
+    text-align: center;
+    font-weight: bold;
+    font-size: 0.85rem;
+    color: #333;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    min-width: 100px;
+}
+
+.node-pre-trained {
+    border-color: #9966FF; /* Looks purple */
+    background-color: #f5f0ff;
+}
+
+.node-algorithm {
+    border-color: #FF661A; /* My Blocks red/orange */
+    background-color: #fff0e6;
+}
+
+.arch-arrow {
+    font-size: 2rem;
+    color: #999;
+    padding: 0 0.5rem;
+}
+
+/* PREDICTION STYLES */
+.inference-card {
+    background-color: #f2fbf8;
+    border-color: #0FBD8C;
+}
+
+.prediction-display {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.pred-result, .pred-confidence {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+}
+
+.pred-label {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #0FBD8C;
+}
+
+.conf-value {
+    font-weight: bold;
+    color: $text-primary;
+}
+
+.conf-bar-container {
+    width: 100%;
+    height: 8px;
+    background-color: #e0e0e0;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.conf-bar-fill {
+    height: 100%;
+    background-color: #0FBD8C;
+    transition: width 0.3s ease;
+}

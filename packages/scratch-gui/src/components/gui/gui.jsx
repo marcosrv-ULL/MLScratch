@@ -42,6 +42,7 @@ import styles from './gui.css';
 import codeIcon from './icon--code.svg';
 import costumesIcon from './icon--costumes.svg';
 import soundsIcon from './icon--sounds.svg';
+import modelIcon from './icon--model.svg'
 import databaseIcon from './icon--database.svg'
 import DebugModal from '../debug-modal/debug-modal.jsx';
 import {setPlatform} from '../../reducers/platform.js';
@@ -51,6 +52,8 @@ import {ModalFocusProvider} from '../../contexts/modal-focus-context.jsx';
 
 import DatasetComponent from '../dataset/dataset.jsx';
 import {DATASET_TAB_INDEX} from '../../reducers/editor-tab';
+
+import ModelsComponent from '../model/model.jsx';
 
 const ariaMessages = defineMessages({
     menuBar: {
@@ -473,6 +476,13 @@ const GUIComponent = props => {
                                             />
                                             <span style={{ fontWeight: 'bold' }}>Dataset</span>
                                         </Tab>
+                                        <Tab className={tabClassNames.tab}>
+                                            <img
+                                                draggable={false}
+                                                src={modelIcon}
+                                            />
+                                            <span style={{ fontWeight: 'bold' }}>Model</span>
+                                        </Tab>
                                     </TabList>
                                 </Box>
                                 <TabPanel
@@ -538,6 +548,9 @@ const GUIComponent = props => {
                                 </TabPanel>
                                 <TabPanel className={tabClassNames.tabPanel}>
                                     <DatasetComponent vm={vm}/>
+                                </TabPanel>
+                                <TabPanel className={tabClassNames.tabPanel}>
+                                    <ModelsComponent vm={vm}/>
                                 </TabPanel>
                             </Tabs>
                             {backpackVisible ? (

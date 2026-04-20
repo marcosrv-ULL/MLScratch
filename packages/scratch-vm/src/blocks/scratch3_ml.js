@@ -36,6 +36,8 @@ class MLBlocks {
             document.head.appendChild(script);
             console.log("[ML Blocks] Injecting ml5.js library...");
         }
+
+        this.runtime.on('GUI_RETRAIN_MODEL', this._handleGuiRetrain.bind(this));
     }
 
     onStopAll() {
@@ -73,6 +75,25 @@ class MLBlocks {
             // El grupo 'super' o el uso de Infinity aseguran que esté por encima del canvas normal
             this.runtime.renderer.setDrawableOrder(this._boxDrawableId, Infinity);
         }
+    }
+
+    /**
+     * Handles a retraining request coming directly from the React GUI.
+     * @param {Object} data - Contains modelName and datasetName
+     */
+    _handleGuiRetrain(data) {
+        if (!data.modelName || !data.datasetName) return;
+        
+        // Mock the arguments as if they came from a Scratch block
+        const args = {
+            MODEL_NAME: data.modelName,
+            DATASET_NAME: data.datasetName
+        };
+        
+        // Trigger the training process asynchronously
+        this.trainModelWithDataset(args, null).catch(err => {
+            console.error("[ML Blocks] GUI Retrain error:", err);
+        });
     }
 
     /**
