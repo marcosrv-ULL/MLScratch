@@ -1,0 +1,21 @@
+<!doctype html><html><head><script>var OriginalWorker = window.Worker;
+      window.Worker = function(stringUrl, options) {
+          if (stringUrl) {
+              var urlStr = stringUrl.toString();
+              
+              // Detect if running on GitHub Pages
+              var isGitHubPages = window.location.pathname.indexOf('/MLScratch') !== -1;
+              
+              if (isGitHubPages) {
+                  if (urlStr.indexOf('fetch-worker') !== -1 && urlStr.indexOf('/MLScratch/') === -1) {
+                      // Extract just the filename to bypass relative path issues
+                      var fetchFileName = urlStr.substring(urlStr.lastIndexOf('/') + 1);
+                      stringUrl = '/MLScratch/chunks/' + fetchFileName;
+                  } 
+                  else if (urlStr.indexOf('extension-worker.js') !== -1 && urlStr.indexOf('/MLScratch/') === -1) {
+                      stringUrl = '/MLScratch/extension-worker.js';
+                  }
+              }
+          }
+          return new OriginalWorker(stringUrl, options);
+      };</script><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="google" value="notranslate"><link rel="shortcut icon" href="static/favicon.ico"><title>ML Scratch: Blocks Only Example</title><script defer="defer" src="/MLScratch/blocksonly.js"></script></head><body></body></html>
