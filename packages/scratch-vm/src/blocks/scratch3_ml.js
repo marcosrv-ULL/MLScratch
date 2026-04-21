@@ -25,12 +25,7 @@ class MLBlocks {
         this._boxDrawableId = null;
         this.areaMode = 'train';
 
-        // Global event flags
-        this.hatTrainedFired = false;
-        this.hatInferenceFired = false;
-
         this.runtime.on('PROJECT_STOP_ALL', this.onStopAll.bind(this));
-
         this.runtime.on('AFTER_EXECUTE', this._forceOverlayOrder.bind(this));
 
         // Dynamically load ml5.js for real machine learning capabilities
@@ -52,7 +47,6 @@ class MLBlocks {
         }
     }
 
-    // 1. Remove the hat functions from getPrimitives
     getPrimitives() {
         return {
             ml_set_canvas_area: this.setCanvasArea,
@@ -68,15 +62,11 @@ class MLBlocks {
             ml_train_model_with_dataset: this.trainModelWithDataset,
             ml_make_prediction: this.makePrediction,
 
-            // ml_when_model_trained and ml_when_inference_made removed from here
-            // They will be triggered manually now.
-
             ml_get_prediction: this.getPrediction,
             ml_get_confidence: this.getConfidence
         };
     }
 
-    // 2. Add your manual trigger logic
     /**
      * Manually extracts scripts from all targets and pushes them to the runtime thread queue.
      * Replicates the exact behavior of the custom quantum mod event dispatcher.
@@ -91,7 +81,6 @@ class MLBlocks {
             
             if (scripts.length >= 1) {
                 for (let j = 0; j < scripts.length; j++) {
-                    // Manually push the thread to the VM runtime
                     this.runtime._pushThread(scripts[j].blockId, target);
                 }
             }
@@ -125,23 +114,9 @@ class MLBlocks {
         });
     }
 
-    /**
-     * Evaluates global model trained hat
-     */
-    whenModelTrained(args, util) {
-        return this.hatTrainedFired;
-    }
-
-    /**
-     * Evaluates global inference made hat
-     */
-    whenInferenceMade(args, util) {
-        return this.hatInferenceFired;
-    }
-
     createModel(args, util) {
         const modelName = Cast.toString(args.MODEL_NAME) || 'default_model';
-        const modelType = 'NeuralNetwork';
+        const modelType = 'NeuralNetwork'; // Defaulting to NeuralNetwork as per your latest code
         
         if (!this.runtime.mlModels[modelName]) {
             this.runtime.mlModels[modelName] = {
@@ -149,6 +124,8 @@ class MLBlocks {
                 isTrained: false,
                 isTraining: false, 
                 currentLoss: null,
+                lossHistory: [],          // Native storage for the graph
+                predictionHistory: [],    // Native storage for past predictions
                 datasetUsed: null,
                 algorithm: modelType, 
                 classifier: null, 
@@ -177,6 +154,7 @@ class MLBlocks {
         model.isTraining = true;
         model.datasetUsed = datasetName;
         model.currentLoss = null;
+        model.lossHistory = []; // Clear graph on new training
 
         return new Promise(async (resolve) => {
             
@@ -201,13 +179,11 @@ class MLBlocks {
                         model.isTraining = false;
                         console.log(`[ML Blocks] Training complete for '${modelName}'!`);
                         
-                        // Fire global hat synchronously
-                        this.hatTrainedFired = true;
-                        this.hatTrainedFired = false;
                         this._triggerManualHat("ml_when_model_trained");
                         resolve(); 
                     } else {
                         model.currentLoss = loss;
+                        model.lossHistory.push(loss); // Save point precisely when it happens
                     }
                 });
 
@@ -232,11 +208,7 @@ class MLBlocks {
                 model.isTraining = false;
                 model.currentLoss = 0; 
                 
-                // Fire global hat synchronously
-                this.hatTrainedFired = true;
-                this.runtime.startHats('ml_when_model_trained');
-                this.hatTrainedFired = false;
-                
+                this._triggerManualHat("ml_when_model_trained");
                 resolve();
             }
         });
@@ -271,44 +243,42 @@ class MLBlocks {
         return new Promise(async (resolve) => {
             const imgElement = await this._base64ToImage(base64Image);
             
-            if (model.algorithm === 'NeuralNetwork') {
-                model.classifier.classify(imgElement, (err, results) => {
-                    if (err) {
-                        model.lastPrediction = "Error";
-                        model.lastConfidence = 0;
-                    } else if (results && results.length > 0) {
+            const handleResult = (err, results) => {
+                if (err) {
+                    model.lastPrediction = "Error";
+                    model.lastConfidence = 0;
+                } else {
+                    if (model.algorithm === 'NeuralNetwork' && results && results.length > 0) {
                         model.lastPrediction = results[0].label;
                         model.lastConfidence = Math.round(results[0].confidence * 100); 
-                    }
-                    
-                    // Fire global hat synchronously
-                    this.hatInferenceFired = true;
-                    this._triggerManualHat('ml_when_inference_made');
-                    this.hatInferenceFired = false;
-                    
-                    resolve();
-                });
-
-            } else if (model.algorithm === 'KNN') {
-                const features = model.featureExtractor.infer(imgElement);
-                
-                model.classifier.classify(features, (err, result) => {
-                    if (err) {
-                        model.lastPrediction = "Error";
-                        model.lastConfidence = 0;
-                    } else if (result) {
-                        model.lastPrediction = result.label;
-                        const confidence = result.confidencesByLabel[result.label] || 0;
+                    } else if (model.algorithm === 'KNN' && results) {
+                        model.lastPrediction = results.label;
+                        const confidence = results.confidencesByLabel[results.label] || 0;
                         model.lastConfidence = Math.round(confidence * 100);
                     }
+
+                    // Save prediction to native history queue
+                    model.predictionHistory.unshift({
+                        label: model.lastPrediction,
+                        confidence: model.lastConfidence,
+                        time: new Date().toLocaleTimeString()
+                    });
                     
-                    // Fire global hat synchronously
-                    this.hatInferenceFired = true;
-                    this._triggerManualHat('ml_when_inference_made');
-                    this.hatInferenceFired = false;
-                    
-                    resolve();
-                });
+                    // Keep memory clean, only store last 5
+                    if (model.predictionHistory.length > 5) {
+                        model.predictionHistory.pop();
+                    }
+                }
+                
+                this._triggerManualHat('ml_when_inference_made');
+                resolve();
+            };
+
+            if (model.algorithm === 'NeuralNetwork') {
+                model.classifier.classify(imgElement, handleResult);
+            } else if (model.algorithm === 'KNN') {
+                const features = model.featureExtractor.infer(imgElement);
+                model.classifier.classify(features, handleResult);
             }
         });
     }

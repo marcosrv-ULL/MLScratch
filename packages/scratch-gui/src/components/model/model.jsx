@@ -9,9 +9,7 @@ class ModelsComponent extends React.Component {
         super(props);
         this.state = {
             models: {},
-            selectedModel: null,
-            // Local state to track history for visualizations
-            localHistory: {} 
+            selectedModel: null
         };
         this.updateInterval = null;
         this.handleModelSelect = this.handleModelSelect.bind(this);
@@ -28,7 +26,6 @@ class ModelsComponent extends React.Component {
                     const keys = Object.keys(vm.runtime.mlModels);
                     
                     this.setState(prevState => {
-                        const newHistory = { ...prevState.localHistory };
                         let newSelected = prevState.selectedModel;
 
                         for (let i = 0; i < keys.length; i++) {
@@ -39,40 +36,14 @@ class ModelsComponent extends React.Component {
                                 isTrained: m.isTrained,
                                 isTraining: m.isTraining,
                                 currentLoss: m.currentLoss,
+                                // Native arrays pulled directly from the VM
+                                lossHistory: [...(m.lossHistory || [])],             
+                                predictionHistory: [...(m.predictionHistory || [])], 
                                 datasetUsed: m.datasetUsed,
                                 algorithm: m.algorithm,
                                 lastPrediction: m.lastPrediction,
                                 lastConfidence: m.lastConfidence
                             };
-
-                            // Initialize local history for new models
-                            if (!newHistory[key]) {
-                                newHistory[key] = { lossGraph: [], predictions: [] };
-                            }
-
-                            // Update Loss Graph during training
-                            if (m.isTraining && typeof m.currentLoss === 'number' && !isNaN(m.currentLoss)) {
-                                newHistory[key].lossGraph.push(m.currentLoss);
-                            } else if (!m.isTraining && !m.isTrained) {
-                                newHistory[key].lossGraph = []; // Reset if untrained
-                            }
-
-                            // Update Prediction History
-                            const lastSavedPred = newHistory[key].predictions[0];
-                            const isValidPrediction = m.lastPrediction !== "None" && m.lastPrediction !== "Not trained" && m.lastPrediction !== "Error";
-                            
-                            // Only add to history if it's different from the immediate previous one (to avoid spamming from polling)
-                            if (isValidPrediction && (!lastSavedPred || lastSavedPred.label !== m.lastPrediction || lastSavedPred.confidence !== m.lastConfidence)) {
-                                newHistory[key].predictions.unshift({
-                                    label: m.lastPrediction,
-                                    confidence: m.lastConfidence,
-                                    time: new Date().toLocaleTimeString()
-                                });
-                                // Keep only the last 5 predictions
-                                if (newHistory[key].predictions.length > 5) {
-                                    newHistory[key].predictions.pop();
-                                }
-                            }
                         }
                         
                         if (!newSelected && keys.length > 0) {
@@ -84,8 +55,7 @@ class ModelsComponent extends React.Component {
                         
                         return { 
                             models: clonedModels, 
-                            selectedModel: newSelected,
-                            localHistory: newHistory
+                            selectedModel: newSelected
                         };
                     });
                 }
@@ -114,14 +84,6 @@ class ModelsComponent extends React.Component {
             return;
         }
 
-        // Clear local graph history on retrain
-        this.setState(prevState => ({
-            localHistory: {
-                ...prevState.localHistory,
-                [selectedModel]: { ...prevState.localHistory[selectedModel], lossGraph: [] }
-            }
-        }));
-
         const vm = this.props.vm || window.vm;
         if (vm && vm.runtime) {
             vm.runtime.emit('GUI_RETRAIN_MODEL', {
@@ -131,7 +93,7 @@ class ModelsComponent extends React.Component {
         }
     }
 
-    // Generates a simple SVG line chart for the learning curve
+    // Generates a numerical SVG line chart for the learning curve
     renderLossGraph(lossArray) {
         if (!lossArray || lossArray.length < 2) {
             return (
@@ -143,26 +105,42 @@ class ModelsComponent extends React.Component {
 
         const width = 300;
         const height = 100;
-        const maxLoss = Math.max(...lossArray, 1); // Minimum scale of 1
+        const paddingLeft = 35; // Space for numerical text on the Y axis
+        const paddingRight = 5;
+        const paddingTop = 10;
+        const paddingBottom = 10;
+        
+        const graphWidth = width - paddingLeft - paddingRight;
+        const graphHeight = height - paddingTop - paddingBottom;
+        
+        // Avoid division by zero if all losses are the same or zero
+        const maxLoss = Math.max(...lossArray, 0.01); 
         const minLoss = 0;
         
         const points = lossArray.map((loss, index) => {
-            const x = (index / (lossArray.length - 1)) * width;
-            const y = height - ((loss - minLoss) / (maxLoss - minLoss)) * height;
+            const x = paddingLeft + (index / (lossArray.length - 1)) * graphWidth;
+            const y = paddingTop + graphHeight - ((loss - minLoss) / (maxLoss - minLoss)) * graphHeight;
             return `${x},${y}`;
         }).join(' ');
 
         return (
             <div className={styles.graphContainer}>
                 <svg viewBox={`0 0 ${width} ${height}`} className={styles.svgGraph}>
-                    {/* Y-Axis labels */}
-                    <text x="5" y="15" className={styles.graphText}>Error alto</text>
-                    <text x="5" y={height - 5} className={styles.graphText}>Error bajo</text>
+                    {/* Background Gridlines */}
+                    <line x1={paddingLeft} y1={paddingTop} x2={width - paddingRight} y2={paddingTop} stroke="#e0e0e0" strokeDasharray="2 2" />
+                    <line x1={paddingLeft} y1={paddingTop + graphHeight / 2} x2={width - paddingRight} y2={paddingTop + graphHeight / 2} stroke="#e0e0e0" strokeDasharray="2 2" />
+                    <line x1={paddingLeft} y1={paddingTop + graphHeight} x2={width - paddingRight} y2={paddingTop + graphHeight} stroke="#cccccc" />
+
+                    {/* Numerical Y-Axis labels */}
+                    <text x={paddingLeft - 5} y={paddingTop + 4} textAnchor="end" className={styles.graphText}>{maxLoss.toFixed(2)}</text>
+                    <text x={paddingLeft - 5} y={paddingTop + (graphHeight / 2) + 4} textAnchor="end" className={styles.graphText}>{(maxLoss / 2).toFixed(2)}</text>
+                    <text x={paddingLeft - 5} y={paddingTop + graphHeight + 4} textAnchor="end" className={styles.graphText}>0</text>
                     
+                    {/* Data Line */}
                     <polyline
                         fill="none"
                         stroke="#FF6680"
-                        strokeWidth="3"
+                        strokeWidth="2"
                         points={points}
                         strokeLinejoin="round"
                     />
@@ -201,10 +179,9 @@ class ModelsComponent extends React.Component {
     }
 
     render() {
-        const { models, selectedModel, localHistory } = this.state;
+        const { models, selectedModel } = this.state;
         const modelKeys = Object.keys(models);
         const currentModel = selectedModel ? models[selectedModel] : null;
-        const historyData = selectedModel ? localHistory[selectedModel] : null;
 
         return (
             <div className={classNames(styles.editorContainer, this.props.className)}>
@@ -268,7 +245,7 @@ class ModelsComponent extends React.Component {
                                         {/* Read-only Hyperparameters */}
                                         {currentModel.algorithm === 'NeuralNetwork' && (
                                             <div className={styles.hyperparams}>
-                                                <small>Épocas de entrenamiento (Ciclos): 50</small><br/>
+                                                <small>Ciclos de entrenamiento: 50</small><br/>
                                                 <small>Tasa de aprendizaje (Learning Rate): 0.0001</small>
                                             </div>
                                         )}
@@ -284,7 +261,7 @@ class ModelsComponent extends React.Component {
                                                     <span>Margen de error matemático:</span>
                                                     <strong>{typeof currentModel.currentLoss === 'number' && !isNaN(currentModel.currentLoss) ? currentModel.currentLoss.toFixed(4) : "---"}</strong>
                                                 </div>
-                                                {this.renderLossGraph(historyData?.lossGraph)}
+                                                {this.renderLossGraph(currentModel.lossHistory)}
                                             </div>
                                         )}
                                     </div>
@@ -303,21 +280,20 @@ class ModelsComponent extends React.Component {
                                         {!currentModel.isTrained ? (
                                             <p className={styles.mutedText}>El modelo debe ser entrenado para poder clasificar datos nuevos.</p>
                                         ) : (
-                                            <div className={styles.predictionDisplay}>
-                                                <div className={styles.predResult}>
-                                                    <span>Última predicción:</span>
-                                                    <span className={styles.predLabel}>{currentModel.lastPrediction}</span>
-                                                </div>
-                                                <div className={styles.predConfidence}>
-                                                    <span>Probabilidad de acierto (Confianza):</span>
-                                                    <span className={styles.confValue}>{currentModel.lastConfidence}%</span>
-                                                </div>
-                                                <div className={styles.confBarContainer}>
-                                                    <div 
-                                                        className={styles.confBarFill} 
-                                                        style={{ width: `${currentModel.lastConfidence}%` }}
-                                                    ></div>
-                                                </div>
+                                            <div className={styles.historyContainer}>
+                                                {currentModel.predictionHistory && currentModel.predictionHistory.length > 0 ? (
+                                                    <ul className={styles.predictionList}>
+                                                        {currentModel.predictionHistory.map((pred, idx) => (
+                                                            <li key={idx} className={idx === 0 ? styles.latestPrediction : styles.oldPrediction}>
+                                                                <span className={styles.predTime}>{pred.time}</span>
+                                                                <span className={styles.predName}>{pred.label}</span>
+                                                                <span className={styles.predConf}>{pred.confidence}% probabilidad</span>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                ) : (
+                                                    <p className={styles.mutedText}>Esperando a realizar una predicción...</p>
+                                                )}
                                             </div>
                                         )}
                                     </div>
