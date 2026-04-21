@@ -20,12 +20,12 @@
                 var urlStr = stringUrl.toString();
                 
                 // Intercept fetch-worker if it lacks the subdirectory
-                if (urlStr.includes('/chunks/fetch-worker')) {
-                    stringUrl = urlStr.replace('/chunks/fetch-worker', '/chunks/fetch-worker');
+                if (urlStr.includes('/chunks/fetch-worker') && !urlStr.includes('/MLScratch/')) {
+                    stringUrl = urlStr.replace('/chunks/fetch-worker', '/MLScratch/chunks/fetch-worker');
                 } 
                 // Intercept extension-worker if it lacks the subdirectory
-                else if (urlStr.includes('/extension-worker.js')) {
-                    stringUrl = urlStr.replace('/extension-worker.js', '/extension-worker.js');
+                else if (urlStr.includes('/extension-worker.js') && !urlStr.includes('/MLScratch/')) {
+                    stringUrl = urlStr.replace('/extension-worker.js', '/MLScratch/extension-worker.js');
                 }
             }
             return new OriginalWorker(stringUrl, options);

@@ -7,11 +7,11 @@ window.Worker = function(stringUrl, options) {
     if (typeof stringUrl === 'string') {
         // Redirect storage fetch worker
         if (stringUrl.startsWith('/chunks/fetch-worker')) {
-            stringUrl = '/QScratch' + stringUrl;
+            stringUrl = '/MLScratch' + stringUrl;
         } 
         // Redirect VM extension worker
         else if (stringUrl === '/extension-worker.js') {
-            stringUrl = '/QScratch/extension-worker.js';
+            stringUrl = '/MLScratch/extension-worker.js';
         }
     }
     

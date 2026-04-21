@@ -18,11 +18,11 @@ const OriginalWorker = window.Worker;
     if (typeof stringUrl === 'string') {
         // Redirect storage fetch worker
         if (stringUrl.startsWith('/chunks/fetch-worker')) {
-            stringUrl = stringUrl;
+            stringUrl = '/MLScratch' + stringUrl;
         } 
         // Redirect VM extension worker
         else if (stringUrl === '/extension-worker.js') {
-            stringUrl = '/extension-worker.js';
+            stringUrl = '/MLScratch/extension-worker.js';
         }
     }
     
