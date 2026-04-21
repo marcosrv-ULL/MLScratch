@@ -5,13 +5,19 @@ const OriginalWorker = window.Worker;
 
 window.Worker = function(stringUrl, options) {
     if (typeof stringUrl === 'string') {
+        // Detect if the app is running on GitHub Pages or local environment
+        const isGitHubPages = window.location.pathname.startsWith('/MLScratch');
+        const basePath = isGitHubPages ? '/MLScratch' : '';
+
         // Redirect storage fetch worker
-        if (stringUrl.startsWith('/chunks/fetch-worker')) {
-            stringUrl = '/MLScratch' + stringUrl;
+        if (stringUrl.includes('fetch-worker')) {
+            // Extract the exact filename to keep hashes intact
+            const fileName = stringUrl.substring(stringUrl.lastIndexOf('/'));
+            stringUrl = basePath + '/chunks' + fileName;
         } 
         // Redirect VM extension worker
-        else if (stringUrl === '/extension-worker.js') {
-            stringUrl = '/MLScratch/extension-worker.js';
+        else if (stringUrl.includes('extension-worker.js')) {
+            stringUrl = basePath + '/extension-worker.js';
         }
     }
     

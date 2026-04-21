@@ -22,7 +22,7 @@ const OriginalWorker = window.Worker;
         } 
         // Redirect VM extension worker
         else if (stringUrl === '/extension-worker.js') {
-            stringUrl = '/MLScratch/extension-worker.js';
+            stringUrl = '/extension-worker.js';
         }
     }
     
