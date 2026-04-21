@@ -1,7 +1,7 @@
 import classNames from 'classnames';
 import omit from 'lodash.omit';
 import PropTypes from 'prop-types';
-import React, {useEffect, useCallback} from 'react';
+import React, {useEffect, useCallback, useState} from 'react';
 import {defineMessages, FormattedMessage, useIntl} from 'react-intl';
 import {connect} from 'react-redux';
 import MediaQuery from 'react-responsive';
@@ -211,14 +211,32 @@ const GUIComponent = props => {
         vm,
         ...componentProps
     } = omit(props, 'dispatch', 'setPlatform');
+    
+    // Setup state for the webcam toggle
+    const [isWebcamOn, setIsWebcamOn] = useState(false);
+
+    // Toggle logic utilizing the VM's internal IO video device
+    const toggleWebcam = useCallback(() => {
+        const newState = !isWebcamOn;
+        setIsWebcamOn(newState);
+        
+        if (vm && vm.runtime && vm.runtime.ioDevices && vm.runtime.ioDevices.video) {
+            if (newState) {
+                // Turn on the webcam and render it on the stage
+                vm.runtime.ioDevices.video.enableVideo();
+            } else {
+                // Turn off the webcam
+                vm.runtime.ioDevices.video.disableVideo();
+            }
+        }
+    }, [isWebcamOn, vm]);
+
     if (children) {
         return <Box {...componentProps}>{children}</Box>;
     }
 
     useEffect(() => {
         if (props.platform) {
-            // TODO: This uses the imported `setPlatform` directly,
-            // but it should probably use the dispatched version from props.
             setPlatform(props.platform);
         }
     }, [props.platform]);
@@ -228,8 +246,6 @@ const GUIComponent = props => {
             !isFetchingUserData &&
             !themeMap[theme]?.isAvailable?.({hasActiveMembership})
         ) {
-            // If the preferred theme is not available, fall back to default.
-            // TODO: It would be cleaner to do this on redux init.
             props.setTheme(DEFAULT_THEME);
         }
     }, [theme, hasActiveMembership, props.setTheme]);
@@ -253,6 +269,14 @@ const GUIComponent = props => {
     if (isRendererSupported === null) {
         isRendererSupported = Renderer.isSupported();
     }
+
+    // Inline SVG for the camera icon
+    const cameraIconSvg = (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+            <circle cx="12" cy="13" r="4"></circle>
+        </svg>
+    );
 
     return (<MediaQuery minWidth={layout.fullSizeMinWidth}>{isFullSize => {
         const stageSize = resolveStageSize(stageSizeMode, isFullSize);
@@ -394,16 +418,6 @@ const GUIComponent = props => {
                                 selectedTabClassName={tabClassNames.tabSelected}
                                 selectedTabPanelClassName={tabClassNames.tabPanelSelected}
                                 onSelect={onActivateTab}
-
-                                // TODO: focusTabOnClick should be true for accessibility, but currently conflicts
-                                // with nudge operations in the paint editor. We'll likely need to manage focus
-                                // differently within the paint editor before we can turn this back on.
-                                // Repro steps:
-                                // 1. Click the Costumes tab
-                                // 2. Select something in the paint editor (say, the cat's face)
-                                // 3. Press the left or right arrow key
-                                // Desired behavior: the face should nudge left or right
-                                // Actual behavior: the Code or Sounds tab is now focused
                                 focusTabOnClick={false}
                             >
                                 <Box
@@ -474,14 +488,14 @@ const GUIComponent = props => {
                                                 draggable={false}
                                                 src={databaseIcon}
                                             />
-                                            <span style={{ fontWeight: 'bold' }}>Dataset</span>
+                                            <span>Datos</span>
                                         </Tab>
                                         <Tab className={tabClassNames.tab}>
                                             <img
                                                 draggable={false}
                                                 src={modelIcon}
                                             />
-                                            <span style={{ fontWeight: 'bold' }}>Model</span>
+                                            <span>Modelos</span>
                                         </Tab>
                                     </TabList>
                                 </Box>
@@ -568,6 +582,30 @@ const GUIComponent = props => {
                             className={classNames(styles.stageAndTargetWrapper, styles[stageSize])}
                             element="aside"
                         >
+                            {/* Webcam integration button added just above the stage */}
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.5rem', marginRight: '0.2rem' }}>
+                                <button
+                                    onClick={toggleWebcam}
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '0.5rem',
+                                        padding: '0.4rem 0.8rem',
+                                        background: isWebcamOn ? '#FF6680' : '#0FBD8C',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: '4px',
+                                        cursor: 'pointer',
+                                        fontWeight: 'bold',
+                                        fontSize: '0.85rem',
+                                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                                    }}
+                                >
+                                    {cameraIconSvg}
+                                    <span>{isWebcamOn ? 'Parar la cámara' : 'Encender la cámara'}</span>
+                                </button>
+                            </div>
+
                             <StageWrapper
                                 isFullScreen={isFullScreen}
                                 isRendererSupported={isRendererSupported}
@@ -603,9 +641,9 @@ GUIComponent.propTypes = {
     accountNavOpen: PropTypes.bool,
     accountMenuOptions: AccountMenuOptionsPropTypes,
     activeTabIndex: PropTypes.number,
-    authorId: PropTypes.oneOfType([PropTypes.string, PropTypes.bool]), // can be false
+    authorId: PropTypes.oneOfType([PropTypes.string, PropTypes.bool]), 
     authorThumbnailUrl: PropTypes.string,
-    authorUsername: PropTypes.oneOfType([PropTypes.string, PropTypes.bool]), // can be false
+    authorUsername: PropTypes.oneOfType([PropTypes.string, PropTypes.bool]), 
     authorAvatarBadge: PropTypes.number,
     backdropLibraryVisible: PropTypes.bool,
     backpackHost: PropTypes.string,
@@ -682,7 +720,7 @@ GUIComponent.propTypes = {
     colorMode: PropTypes.string,
     theme: PropTypes.string,
     tipsLibraryVisible: PropTypes.bool,
-    useExternalPeripheralList: PropTypes.bool, // true for CDM, false for normal Scratch Link
+    useExternalPeripheralList: PropTypes.bool, 
     username: PropTypes.string,
     userOwnsProject: PropTypes.bool,
     hideTutorialProjects: PropTypes.bool,
@@ -694,7 +732,6 @@ GUIComponent.defaultProps = {
     backpackVisible: false,
     basePath: './',
     blocksId: 'original',
-    // TODO: Currently all of those are always true. Do we actually need them?
     canChangeLanguage: true,
     canChangeColorMode: true,
     canChangeTheme: true,
@@ -719,7 +756,6 @@ GUIComponent.defaultProps = {
 };
 
 const mapStateToProps = state => ({
-    // This is the button's mode, as opposed to the actual current state
     blocksId: state.scratchGui.timeTravel.year.toString(),
     stageSizeMode: state.scratchGui.stageSize.stageSize,
     colorMode: state.scratchGui.settings.colorMode,

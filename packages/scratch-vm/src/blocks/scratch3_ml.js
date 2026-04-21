@@ -25,6 +25,10 @@ class MLBlocks {
         this._boxDrawableId = null;
         this.areaMode = 'train';
 
+        // Global event flags
+        this.hatTrainedFired = false;
+        this.hatInferenceFired = false;
+
         this.runtime.on('PROJECT_STOP_ALL', this.onStopAll.bind(this));
 
         this.runtime.on('AFTER_EXECUTE', this._forceOverlayOrder.bind(this));
@@ -48,6 +52,7 @@ class MLBlocks {
         }
     }
 
+    // 1. Remove the hat functions from getPrimitives
     getPrimitives() {
         return {
             ml_set_canvas_area: this.setCanvasArea,
@@ -55,51 +60,63 @@ class MLBlocks {
             ml_move_canvas_area_to: this.moveCanvasAreaTo, 
             ml_set_area_mode: this.setAreaMode,
             
+            ml_create_dataset: this.createDataset,
             ml_save_current_area: this.learnCurrentArea,
             ml_learn_from_costumes: this.learnFromCostumes,
             
             ml_create_model: this.createModel,
             ml_train_model_with_dataset: this.trainModelWithDataset,
             ml_make_prediction: this.makePrediction,
-            
+
+            // ml_when_model_trained and ml_when_inference_made removed from here
+            // They will be triggered manually now.
+
             ml_get_prediction: this.getPrediction,
             ml_get_confidence: this.getConfidence
         };
     }
 
+    // 2. Add your manual trigger logic
     /**
-     * Forzar el orden del drawable para que el área de ML sea siempre un overlay superior.
-     * Se ejecuta después de cada tick de ejecución.
+     * Manually extracts scripts from all targets and pushes them to the runtime thread queue.
+     * Replicates the exact behavior of the custom quantum mod event dispatcher.
+     * @param {string} opcode - The hat block opcode to trigger
      */
+    _triggerManualHat(opcode) {
+        const targets = this.runtime.targets;
+        
+        for (let i = 0; i < targets.length; i++) {
+            const target = targets[i];
+            const scripts = BlocksRuntimeCache.getScripts(target.blocks, opcode);
+            
+            if (scripts.length >= 1) {
+                for (let j = 0; j < scripts.length; j++) {
+                    // Manually push the thread to the VM runtime
+                    this.runtime._pushThread(scripts[j].blockId, target);
+                }
+            }
+        }
+    }
+
     _forceOverlayOrder() {
         if (this._boxDrawableId !== null && this.runtime.renderer) {
-            // El grupo 'super' o el uso de Infinity aseguran que esté por encima del canvas normal
             this.runtime.renderer.setDrawableOrder(this._boxDrawableId, Infinity);
         }
     }
 
-    /**
-     * Handles a retraining request coming directly from the React GUI.
-     * @param {Object} data - Contains modelName and datasetName
-     */
     _handleGuiRetrain(data) {
         if (!data.modelName || !data.datasetName) return;
         
-        // Mock the arguments as if they came from a Scratch block
         const args = {
             MODEL_NAME: data.modelName,
             DATASET_NAME: data.datasetName
         };
         
-        // Trigger the training process asynchronously
         this.trainModelWithDataset(args, null).catch(err => {
             console.error("[ML Blocks] GUI Retrain error:", err);
         });
     }
 
-    /**
-     * Helper function to convert base64 to an HTMLImageElement needed by ml5.
-     */
     _base64ToImage(base64Str) {
         return new Promise(resolve => {
             const img = new Image();
@@ -109,11 +126,22 @@ class MLBlocks {
     }
 
     /**
-     * Initializes a new model instance with a specific algorithm.
+     * Evaluates global model trained hat
      */
+    whenModelTrained(args, util) {
+        return this.hatTrainedFired;
+    }
+
+    /**
+     * Evaluates global inference made hat
+     */
+    whenInferenceMade(args, util) {
+        return this.hatInferenceFired;
+    }
+
     createModel(args, util) {
         const modelName = Cast.toString(args.MODEL_NAME) || 'default_model';
-        const modelType = Cast.toString(args.MODEL_TYPE) || 'NeuralNetwork';
+        const modelType = 'NeuralNetwork';
         
         if (!this.runtime.mlModels[modelName]) {
             this.runtime.mlModels[modelName] = {
@@ -122,9 +150,9 @@ class MLBlocks {
                 isTraining: false, 
                 currentLoss: null,
                 datasetUsed: null,
-                algorithm: modelType, // 'NeuralNetwork' or 'KNN'
+                algorithm: modelType, 
                 classifier: null, 
-                featureExtractor: null, // Required specifically for KNN
+                featureExtractor: null, 
                 lastPrediction: "None", 
                 lastConfidence: 0
             };
@@ -132,9 +160,6 @@ class MLBlocks {
         }
     }
 
-    /**
-     * Executes the training process based on the selected algorithm.
-     */
     async trainModelWithDataset(args, util) {
         const modelName = Cast.toString(args.MODEL_NAME) || 'default_model';
         const datasetName = Cast.toString(args.DATASET_NAME) || 'default';
@@ -156,7 +181,6 @@ class MLBlocks {
         return new Promise(async (resolve) => {
             
             if (model.algorithm === 'NeuralNetwork') {
-                // --- NEURAL NETWORK TRAINING ---
                 const featureExtractor = window.ml5.featureExtractor('MobileNet', {
                     numLabels: new Set(dataset.map(d => d.label)).size
                 });
@@ -175,6 +199,12 @@ class MLBlocks {
                     if (loss === null) {
                         model.isTrained = true;
                         model.isTraining = false;
+                        console.log(`[ML Blocks] Training complete for '${modelName}'!`);
+                        
+                        // Fire global hat synchronously
+                        this.hatTrainedFired = true;
+                        this.hatTrainedFired = false;
+                        this._triggerManualHat("ml_when_model_trained");
                         resolve(); 
                     } else {
                         model.currentLoss = loss;
@@ -182,19 +212,14 @@ class MLBlocks {
                 });
 
             } else if (model.algorithm === 'KNN') {
-                // --- KNN TRAINING (Instant memory mapping) ---
-                
-                // 1. Load MobileNet as a generic feature extractor
                 const featureExtractor = await new Promise(res => {
                     const fe = window.ml5.featureExtractor('MobileNet', () => res(fe));
                 });
                 
-                // 2. Initialize KNN
                 const knn = window.ml5.KNNClassifier();
                 model.classifier = knn;
                 model.featureExtractor = featureExtractor;
 
-                // 3. Map images to spatial features and add to KNN
                 const imagePromises = dataset.map(async (item) => {
                     const imgElement = await this._base64ToImage(item.image);
                     const features = featureExtractor.infer(imgElement);
@@ -203,25 +228,27 @@ class MLBlocks {
 
                 await Promise.all(imagePromises);
 
-                // KNN trains instantly, no loss curve
                 model.isTrained = true;
                 model.isTraining = false;
-                model.currentLoss = 0; // KNN doesn't use loss
+                model.currentLoss = 0; 
+                
+                // Fire global hat synchronously
+                this.hatTrainedFired = true;
+                this.runtime.startHats('ml_when_model_trained');
+                this.hatTrainedFired = false;
+                
                 resolve();
             }
         });
     }
 
-    /**
-     * Captures the area and runs inference depending on the algorithm type.
-     */
     async makePrediction(args, util) {
         const modelName = Cast.toString(args.MODEL_NAME) || 'default_model';
         const model = this.runtime.mlModels[modelName];
 
         if (!this.isAreaDefined || !model || !model.isTrained || !model.classifier) {
             if (model) {
-                model.lastPrediction = "Not trained";
+                model.lastPrediction = "Modelo sin entrenar";
                 model.lastConfidence = 0;
             }
             return;
@@ -245,7 +272,6 @@ class MLBlocks {
             const imgElement = await this._base64ToImage(base64Image);
             
             if (model.algorithm === 'NeuralNetwork') {
-                // Neural Network Inference
                 model.classifier.classify(imgElement, (err, results) => {
                     if (err) {
                         model.lastPrediction = "Error";
@@ -254,41 +280,60 @@ class MLBlocks {
                         model.lastPrediction = results[0].label;
                         model.lastConfidence = Math.round(results[0].confidence * 100); 
                     }
+                    
+                    // Fire global hat synchronously
+                    this.hatInferenceFired = true;
+                    this._triggerManualHat('ml_when_inference_made');
+                    this.hatInferenceFired = false;
+                    
                     resolve();
                 });
 
             } else if (model.algorithm === 'KNN') {
-                // KNN Inference
                 const features = model.featureExtractor.infer(imgElement);
+                
                 model.classifier.classify(features, (err, result) => {
                     if (err) {
                         model.lastPrediction = "Error";
                         model.lastConfidence = 0;
                     } else if (result) {
                         model.lastPrediction = result.label;
-                        // ml5 KNN returns a confidencesByLabel object
                         const confidence = result.confidencesByLabel[result.label] || 0;
                         model.lastConfidence = Math.round(confidence * 100);
                     }
+                    
+                    // Fire global hat synchronously
+                    this.hatInferenceFired = true;
+                    this._triggerManualHat('ml_when_inference_made');
+                    this.hatInferenceFired = false;
+                    
                     resolve();
                 });
             }
         });
     }
 
-    /**
-     * Instantly returns the cached prediction string.
-     */
+    createDataset(args, util) {
+        const datasetName = Cast.toString(args.LABEL) || 'default';
+        
+        if (!this.runtime.mlDatasets[datasetName]) {
+            this.runtime.mlDatasets[datasetName] = [];
+            
+            if (Object.keys(this.runtime.mlDatasets).length === 2) {
+                this.runtime.currentSelectedDataset = datasetName;
+            }
+            
+            console.log(`[ML Blocks] Dataset '${datasetName}' created.`);
+        }
+    }
+
     getPrediction(args, util) {
         const modelName = Cast.toString(args.MODEL_NAME) || 'default_model';
         const model = this.runtime.mlModels[modelName];
-        if (!model) return "No model";
+        if (!model) return "No hay modelo";
         return model.lastPrediction;
     }
 
-    /**
-     * Instantly returns the cached confidence percentage.
-     */
     getConfidence(args, util) {
         const modelName = Cast.toString(args.MODEL_NAME) || 'default_model';
         const model = this.runtime.mlModels[modelName];
@@ -316,10 +361,6 @@ class MLBlocks {
         this.runtime.requestRedraw();
     }
 
-    /**
-     * Moves the ML area to the exact coordinates of a specific sprite, 
-     * the mouse pointer, or a random position.
-     */
     moveCanvasAreaTo(args, util) {
         if (!this.isAreaDefined) return;
 
@@ -328,21 +369,17 @@ class MLBlocks {
         let newY = this.mlArea.y;
 
         if (targetName === '_mouse_') {
-            // Retrieve mouse coordinates from Scratch IO
             newX = util.ioQuery('mouse', 'getScratchX');
             newY = util.ioQuery('mouse', 'getScratchY');
         } else if (targetName === '_random_') {
-            // Generate random coordinates within standard stage boundaries
             newX = Math.round(Math.random() * 480 - 240);
             newY = Math.round(Math.random() * 360 - 180);
         } else {
-            // Lookup the sprite by its name in the VM runtime
             const targetSprite = this.runtime.getSpriteTargetByName(targetName);
             if (targetSprite) {
                 newX = targetSprite.x;
                 newY = targetSprite.y;
             } else {
-                // Target not found (might have been deleted), abort movement
                 return;
             }
         }
@@ -391,10 +428,8 @@ class MLBlocks {
         }
 
         renderer.updateDrawableProperties(this._boxDrawableId, { skinId: this._boxSkinId, position: [x, y], visible: true });
-        renderer.setDrawableOrder(this._boxDrawableId, Infinity); // Se mantiene aquí para la creación inicial
+        renderer.setDrawableOrder(this._boxDrawableId, Infinity); 
     }
-
-    /* --- DATA COLLECTION --- */
 
     _saveToDataset(label, image, datasetName = 'default') {
         if (!this.runtime.mlDatasets[datasetName]) {
@@ -435,7 +470,7 @@ class MLBlocks {
 
         const target = util.target;
         const label = Cast.toString(args.LABEL);
-        const datasetName = Cast.toString(args.DATASET) || 'default'; // Assumes block has DATASET argument
+        const datasetName = Cast.toString(args.DATASET) || 'default'; 
         
         const originalCostumeIndex = target.currentCostume;
         const originalX = target.x;
@@ -455,7 +490,6 @@ class MLBlocks {
             const base64Image = this.extractImageFromArea(this.mlArea);
             
             if (base64Image) {
-                // FIXED: Now uses the proper dictionary storage system
                 this._saveToDataset(label, base64Image, datasetName);
             }
         }

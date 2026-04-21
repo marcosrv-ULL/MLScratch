@@ -10,7 +10,7 @@ export default function defineMachineLearningBlocks(ScratchBlocks) {
     ScratchBlocks.Blocks['ml_set_canvas_area'] = {
         init: function () {
             this.jsonInit({
-                "message0": "set ml area x: %1 y: %2 width: %3 height: %4",
+                "message0": "fijar área de visión x: %1 y: %2 ancho: %3 alto: %4",
                 "args0": [
                     {
                         "type": "input_value",
@@ -40,7 +40,7 @@ export default function defineMachineLearningBlocks(ScratchBlocks) {
     ScratchBlocks.Blocks['ml_learn_from_costumes'] = {
         init: function () {
             this.jsonInit({
-                "message0": "learn all costumes as %1",
+                "message0": "aprender todos los disfraces como %1",
                 "args0": [
                     {
                         "type": "input_value",
@@ -54,10 +54,67 @@ export default function defineMachineLearningBlocks(ScratchBlocks) {
         }
     };
 
+    // ml_when_model_trained
+    ScratchBlocks.Blocks['ml_when_model_trained'] = {
+        init: function () {
+            this.jsonInit({
+                "message0": "cuando cualquier modelo termine de entrenar",
+                "category": "Machine Learning",
+                "colour": ML_COLOR,
+                "extensions": ["shape_hat"]
+            });
+        }
+    };
+
+    // ml_when_inference_made
+    ScratchBlocks.Blocks['ml_when_inference_made'] = {
+        init: function () {
+            this.jsonInit({
+                "message0": "cuando se haga una predicción",
+                "category": "Machine Learning",
+                "colour": ML_COLOR,
+                "extensions": ["shape_hat"]
+            });
+        }
+    };
+
+    // ml_dataset_menu
+    ScratchBlocks.Blocks['ml_dataset_menu'] = {
+        init: function () {
+            // Dynamic function to fetch active datasets from the VM
+            var getOptions = function () {
+                var options = [];
+                if (typeof window !== 'undefined' && window.vm && window.vm.runtime.mlDatasets) {
+                    var datasets = window.vm.runtime.mlDatasets;
+                    var keys = Object.keys(datasets);
+                    for (var i = 0; i < keys.length; i++) {
+                        options.push([keys[i], keys[i]]);
+                    }
+                }
+                
+                // Fallback option if no datasets exist
+                if (options.length === 0) {
+                    options.push(['datos 1', 'nodataset']); 
+                }
+                
+                return options;
+            };
+
+            this.appendDummyInput()
+                // The field name here doesn't matter much for a shadow block, but we set it
+                .appendField(new ScratchBlocks.FieldDropdown(getOptions), 'DATASET_NAME');
+            
+            this.setColour(ML_COLOR); 
+            this.setOutput(true, 'String');
+            this.setOutputShape(ScratchBlocks.OUTPUT_SHAPE_ROUND);
+        }
+    };
+
+    // ml_create_dataset
     ScratchBlocks.Blocks['ml_create_dataset'] = {
         init: function () {
             this.jsonInit({
-                "message0": "create dataset %1",
+                "message0": "crear conjunto de datos %1",
                 "args0": [
                     {
                         "type": "input_value",
@@ -71,11 +128,11 @@ export default function defineMachineLearningBlocks(ScratchBlocks) {
         }
     };
 
-    // ml_learn_current_area
+    // ml_save_current_area
     ScratchBlocks.Blocks['ml_save_current_area'] = {
         init: function () {
             this.jsonInit({
-                "message0": "save current area as %1 to %2",
+                "message0": "guardar imagen actual como %1 en %2",
                 "args0": [
                     {
                         "type": "input_value",
@@ -97,7 +154,7 @@ export default function defineMachineLearningBlocks(ScratchBlocks) {
     ScratchBlocks.Blocks['ml_train_model'] = {
         init: function () {
             this.jsonInit({
-                "message0": "train ml model",
+                "message0": "entrenar modelo de IA",
                 "category": "Machine Learning",
                 "colour": ML_COLOR,
                 "extensions": ["shape_statement"]
@@ -105,15 +162,13 @@ export default function defineMachineLearningBlocks(ScratchBlocks) {
         }
     };
 
-    
-
     // --- REPORTER BLOCKS (VALUES) ---
 
-    // ml_get_prediction
+    // ml_get_prediction (Legacy/Generic prediction block)
     ScratchBlocks.Blocks['ml_get_prediction'] = {
         init: function () {
             this.jsonInit({
-                "message0": "ml area prediction",
+                "message0": "predicción del área",
                 "category": "Machine Learning",
                 "colour": ML_COLOR,
                 "output": "String",
@@ -122,10 +177,11 @@ export default function defineMachineLearningBlocks(ScratchBlocks) {
         }
     };
 
+    // ml_move_canvas_area
     ScratchBlocks.Blocks['ml_move_canvas_area'] = {
         init: function () {
             this.jsonInit({
-                "message0": "move area to x: %1 y: %2",
+                "message0": "mover área a x: %1 y: %2",
                 "args0": [
                     {
                         "type": "input_value",
@@ -143,6 +199,7 @@ export default function defineMachineLearningBlocks(ScratchBlocks) {
         }
     };
 
+    // ml_goto_menu
     ScratchBlocks.Blocks['ml_goto_menu'] = {
         init: function () {
             // Dynamic function to fetch sprites from the Scratch VM
@@ -173,10 +230,11 @@ export default function defineMachineLearningBlocks(ScratchBlocks) {
         }
     };
 
+    // ml_move_canvas_area_to
     ScratchBlocks.Blocks['ml_move_canvas_area_to'] = {
         init: function () {
             this.jsonInit({
-                "message0": "move area to %1",
+                "message0": "mover área a %1",
                 "args0": [
                     {
                         "type": "input_value",
@@ -190,17 +248,18 @@ export default function defineMachineLearningBlocks(ScratchBlocks) {
         }
     };
 
+    // ml_set_area_mode
     ScratchBlocks.Blocks['ml_set_area_mode'] = {
         init: function () {
             this.jsonInit({
-                "message0": "set area mode to %1",
+                "message0": "cambiar modo del área a %1",
                 "args0": [
                     {
                         "type": "field_dropdown",
                         "name": "MODE",
                         "options": [
-                            ["training", "train"],
-                            ["prediction", "predict"]
+                            ["entrenar", "train"],
+                            ["predecir", "predict"]
                         ]
                     }
                 ],
@@ -211,7 +270,7 @@ export default function defineMachineLearningBlocks(ScratchBlocks) {
         }
     };
 
-
+    // ml_model_menu
     ScratchBlocks.Blocks['ml_model_menu'] = {
         init: function () {
             // Dynamic function to fetch active models from the VM
@@ -227,7 +286,7 @@ export default function defineMachineLearningBlocks(ScratchBlocks) {
                 
                 // Fallback option if no models are created yet
                 if (options.length === 0) {
-                    options.push(['No model', 'No model']); 
+                    options.push(['modelo 1', 'nomodel']); 
                 }
                 
                 return options;
@@ -242,19 +301,12 @@ export default function defineMachineLearningBlocks(ScratchBlocks) {
         }
     };
 
+    // ml_create_model
     ScratchBlocks.Blocks['ml_create_model'] = {
         init: function () {
             this.jsonInit({
-                "message0": "create %1 model named %2",
+                "message0": "crear modelo llamado %1",
                 "args0": [
-                    {
-                        "type": "field_dropdown",
-                        "name": "MODEL_TYPE",
-                        "options": [
-                            ["Neural Network", "NeuralNetwork"],
-                            ["K-Nearest Neighbors", "KNN"]
-                        ]
-                    },
                     {
                         "type": "input_value",
                         "name": "MODEL_NAME"
@@ -267,10 +319,11 @@ export default function defineMachineLearningBlocks(ScratchBlocks) {
         }
     };
 
+    // ml_train_model_with_dataset
     ScratchBlocks.Blocks['ml_train_model_with_dataset'] = {
         init: function () {
             this.jsonInit({
-                "message0": "train model %1 with dataset %2",
+                "message0": "entrenar modelo %1 con los datos %2",
                 "args0": [
                     {
                         "type": "input_value",
@@ -288,13 +341,11 @@ export default function defineMachineLearningBlocks(ScratchBlocks) {
         }
     };
 
-
-    
-
+    // ml_make_prediction
     ScratchBlocks.Blocks['ml_make_prediction'] = {
         init: function () {
             this.jsonInit({
-                "message0": "make prediction with model %1",
+                "message0": "hacer predicción con el modelo %1",
                 "args0": [
                     {
                         "type": "input_value",
@@ -308,10 +359,11 @@ export default function defineMachineLearningBlocks(ScratchBlocks) {
         }
     };
 
+    // ml_get_prediction (Specific model block)
     ScratchBlocks.Blocks['ml_get_prediction'] = {
         init: function () {
             this.jsonInit({
-                "message0": "last prediction of model %1",
+                "message0": "última predicción del modelo %1",
                 "args0": [
                     {
                         "type": "input_value",
@@ -330,7 +382,7 @@ export default function defineMachineLearningBlocks(ScratchBlocks) {
     ScratchBlocks.Blocks['ml_get_confidence'] = {
         init: function () {
             this.jsonInit({
-                "message0": "ml area confidence %",
+                "message0": "porcentaje de seguridad %",
                 "category": "Machine Learning",
                 "colour": ML_COLOR,
                 "output": "Number",

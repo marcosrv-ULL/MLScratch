@@ -7,21 +7,15 @@ const blockSeparator = '<sep gap="36"/>'; // At default scale, about 28px
 
 /* eslint-disable no-unused-vars */
 const machineLearning = function (isInitialSetup, isStage, targetId) {
-    // Active category colors
+    // Category colors are always active now, as sprites have access to inference
     const activeColor = "#0FBD8C"; 
     const activeSecondaryColor = "#0A8562";
-    
-    // Disabled category color
-    const disabledColor = "#a3a3a3"; 
-
-    // Determine colors based on target type
-    const currentColor = isStage ? activeColor : disabledColor;
-    const currentSecondary = isStage ? activeSecondaryColor : disabledColor;
 
     return `
-    <category name="Machine Learning" id="machine_learning" colour="${currentColor}" secondaryColour="${currentSecondary}">
+    <category name="Machine Learning" id="machine_learning" colour="${activeColor}" secondaryColour="${activeSecondaryColor}">
+        
         ${!isStage ? `
-        <label text=""></label>
+        <label text="Ve a 'Escenario' para iniciar el área"></label>
         ` : `
         <block type="ml_set_canvas_area">
             <value name="X">
@@ -38,6 +32,10 @@ const machineLearning = function (isInitialSetup, isStage, targetId) {
             </value>
         </block>
 
+        <block type="ml_set_area_mode">
+            <field name="MODE">entrenar</field>
+        </block>
+
         <block type="ml_move_canvas_area">
             <value name="X">
                 <shadow type="math_number"><field name="NUM">0</field></shadow>
@@ -52,34 +50,29 @@ const machineLearning = function (isInitialSetup, isStage, targetId) {
                 <shadow type="ml_goto_menu"></shadow>
             </value>
         </block>
-
-        <block type="ml_save_current_area">
-            <value name="LABEL">
-                <shadow type="text"><field name="TEXT">Class A</field></shadow>
-            </value>
-            <value name="LABEL1">
-                <shadow type="text"><field name="TEXT">Dataset</field></shadow>
-            </value>
-        </block>
-        
-        <block type="ml_set_area_mode">
-            <field name="MODE">predict</field>
-        </block>
         
         ${blockSeparator}
         
         <block type="ml_create_dataset">
             <value name="LABEL">
-                <shadow type="text"><field name="TEXT">Class A</field></shadow>
+                <shadow type="text"><field name="TEXT">datos 1</field></shadow>
+            </value>
+        </block>
+
+        <block type="ml_save_current_area">
+            <value name="LABEL">
+                <shadow type="text"><field name="TEXT">gato</field></shadow>
+            </value>
+            <value name="LABEL1">
+                <shadow type="ml_dataset_menu"></shadow>
             </value>
         </block>
         
         ${blockSeparator}
         
         <block type="ml_create_model">
-            <field name="MODEL_TYPE">NeuralNetwork</field>
             <value name="MODEL_NAME">
-                <shadow type="text"><field name="TEXT">Vision</field></shadow>
+                <shadow type="text"><field name="TEXT">modelo 1</field></shadow>
             </value>
         </block>
 
@@ -88,24 +81,37 @@ const machineLearning = function (isInitialSetup, isStage, targetId) {
                 <shadow type="ml_model_menu"></shadow>
             </value>
             <value name="DATASET_NAME">
-                <shadow type="text"><field name="TEXT">default</field></shadow>
+                <shadow type="ml_dataset_menu"></shadow>
             </value>
         </block>
         
         ${blockSeparator}
+        `}
         
+        <block type="ml_make_prediction">
+            <value name="MODEL_NAME">
+                <shadow type="ml_model_menu"></shadow>
+            </value>
+        </block>
+
         <block type="ml_get_prediction">
             <value name="MODEL_NAME">
                 <shadow type="ml_model_menu"></shadow>
             </value>
         </block>
 
-        <block type="ml_make_prediction">
+        <block type="ml_when_model_trained">
             <value name="MODEL_NAME">
                 <shadow type="ml_model_menu"></shadow>
             </value>
         </block>
-        `}
+
+        <block type="ml_when_inference_made">
+            <value name="MODEL_NAME">
+                <shadow type="ml_model_menu"></shadow>
+            </value>
+        </block>
+        
     </category>
     `;
 };

@@ -7,6 +7,10 @@
     flex-grow: 1;
     background-color: $ui-white;
     height: 100%;
+    
+    /* Forzar la fuente nativa de Scratch */
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    color: $text-primary;
 }
 
 .layout {
@@ -34,7 +38,8 @@
 .sidebar-header h3 {
     margin: 0;
     color: $text-primary;
-    font-size: 1rem;
+    font-size: 1.1rem;
+    font-weight: bold;
 }
 
 .model-list {
@@ -49,7 +54,7 @@
     padding: 1rem;
     color: $text-primary-transparent;
     font-style: italic;
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     text-align: center;
 }
 
@@ -73,10 +78,11 @@
     font-weight: bold;
     color: $text-primary;
     margin-bottom: 0.25rem;
+    font-size: 0.95rem;
 }
 
 .list-item-status {
-    font-size: 0.75rem;
+    font-size: 0.8rem;
     color: $text-primary-transparent;
 }
 
@@ -113,7 +119,7 @@
 }
 
 .dash-subtitle {
-    font-size: 0.9rem;
+    font-size: 0.95rem;
     color: $text-primary;
 }
 
@@ -124,6 +130,7 @@
     cursor: pointer;
     font-weight: bold;
     font-size: 0.9rem;
+    font-family: inherit;
 }
 
 .primary-button {
@@ -155,14 +162,15 @@
 .info-card h4 {
     margin: 0 0 0.75rem 0;
     color: $text-primary;
-    font-size: 1rem;
+    font-size: 1.05rem;
+    font-weight: bold;
     border-bottom: 1px dashed $ui-black-transparent;
     padding-bottom: 0.25rem;
 }
 
 .info-card p {
     margin: 0.5rem 0;
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     color: $text-primary;
 }
 
@@ -190,6 +198,8 @@
 .arch-section h4 {
     margin: 0 0 1rem 0;
     color: $text-primary;
+    font-size: 1.05rem;
+    font-weight: bold;
 }
 
 .architecture-diagram {
@@ -252,6 +262,7 @@
     display: flex;
     justify-content: space-between;
     align-items: baseline;
+    font-size: 0.95rem;
 }
 
 .pred-label {
@@ -277,4 +288,110 @@
     height: 100%;
     background-color: #0FBD8C;
     transition: width 0.3s ease;
+}
+
+/* HYPERPARAMS STYLES */
+.hyperparams {
+    margin-top: 0.75rem;
+    padding-top: 0.5rem;
+    border-top: 1px dotted $ui-black-transparent;
+    color: $text-primary-transparent;
+}
+
+/* LOSS GRAPH STYLES */
+.loss-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+    font-size: 0.85rem;
+}
+
+.graph-container {
+    width: 100%;
+    background-color: #f7f9fa;
+    border: 1px solid $ui-black-transparent;
+    border-radius: 4px;
+    height: 100px;
+    overflow: hidden;
+}
+
+.svg-graph {
+    width: 100%;
+    height: 100%;
+}
+
+.graph-text {
+    font-size: 10px;
+    fill: $text-primary-transparent;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+.graph-placeholder {
+    width: 100%;
+    height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f7f9fa;
+    border: 1px dashed $ui-black-transparent;
+    border-radius: 4px;
+    color: $text-primary-transparent;
+    font-size: 0.85rem;
+    font-style: italic;
+}
+
+/* PREDICTION HISTORY STYLES */
+.history-container {
+    max-height: 150px;
+    overflow-y: auto;
+}
+
+.prediction-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.prediction-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+}
+
+.latest-prediction {
+    background-color: #e6f7f2;
+    border: 1px solid #0FBD8C;
+    font-weight: bold;
+}
+
+.old-prediction {
+    background-color: #f7f9fa;
+    color: $text-primary-transparent;
+    border: 1px solid transparent;
+}
+
+.pred-time {
+    font-size: 0.75rem;
+    color: #888;
+    width: 60px;
+}
+
+.pred-name {
+    flex-grow: 1;
+    color: #0FBD8C;
+    text-transform: uppercase;
+}
+
+.old-prediction .pred-name {
+    color: inherit;
+}
+
+.pred-conf {
+    font-weight: bold;
 }

@@ -88,7 +88,7 @@ class DatasetComponent extends React.Component {
         const currentData = datasets[selectedDataset] || [];
 
         if (currentData.length === 0) {
-            alert("This dataset is empty.");
+            alert("Este conjunto de datos está vacío. ¡Necesitas recolectar ejemplos primero!");
             return;
         }
 
@@ -135,11 +135,11 @@ class DatasetComponent extends React.Component {
                         }));
                     }
                 } else {
-                    alert("Invalid JSON format. Expected an array.");
+                    alert("Formato JSON no válido. Se esperaba una lista de datos.");
                 }
             } catch (err) {
                 console.error("Import error:", err);
-                alert("Failed to read JSON file.");
+                alert("Error al leer el archivo JSON.");
             }
         };
         reader.readAsText(file);
@@ -240,7 +240,7 @@ class DatasetComponent extends React.Component {
                 {/* TOP TOOLBAR ROW */}
                 <div className={styles.row}>
                     <div className={styles.inputGroup}>
-                        <label><strong>Dataset:</strong></label>
+                        <label><strong>Conjunto de datos:</strong></label>
                         <select 
                             className={styles.dropdown}
                             value={selectedDataset} 
@@ -250,7 +250,7 @@ class DatasetComponent extends React.Component {
                                 <option key={key} value={key}>{key}</option>
                             ))}
                         </select>
-                        <span className={styles.badge}>{currentData.length} items</span>
+                        <span className={styles.badge}>{currentData.length} ejemplos</span>
                     </div>
 
                     <div className={styles.inputGroup}>
@@ -262,10 +262,10 @@ class DatasetComponent extends React.Component {
                             onChange={this.handleImport}
                         />
                         <button className={styles.button} onClick={this.triggerFileInput}>
-                            Import JSON
+                            Cargar datos (.json)
                         </button>
                         <button className={classNames(styles.button, styles.primaryButton)} onClick={this.handleExport}>
-                            Export JSON
+                            Guardar datos en el PC
                         </button>
                     </div>
                 </div>
@@ -279,7 +279,7 @@ class DatasetComponent extends React.Component {
                         <div className={styles.datasetGrid}>
                             {currentData.length === 0 ? (
                                 <p className={styles.emptyMessage}>
-                                    Empty dataset. Run blocks to collect data.
+                                    Conjunto de datos vacío. Ejecuta tus bloques para empezar a recolectar ejemplos.
                                 </p>
                             ) : (
                                 currentData.map(item => (
@@ -287,7 +287,7 @@ class DatasetComponent extends React.Component {
                                         <button 
                                             className={styles.deleteBtn} 
                                             onClick={() => this.handleDelete(item.id)}
-                                            title="Delete sample"
+                                            title="Borrar ejemplo"
                                         >
                                             ✕
                                         </button>

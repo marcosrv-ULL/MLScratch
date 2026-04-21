@@ -11,6 +11,10 @@
     /* Crucial para que los hijos absolutos sepan dónde están los límites */
     position: relative;
     height: 100%;
+    
+    /* Forzar la fuente nativa de Scratch */
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    color: $text-primary;
 }
 
 .row {
@@ -45,6 +49,7 @@
     background-color: white;
     margin-left: 0.5rem;
     cursor: pointer;
+    color: $text-primary;
 }
 
 .badge {
@@ -67,6 +72,7 @@
     cursor: pointer;
     font-size: 0.85rem;
     font-weight: bold;
+    font-family: inherit;
     user-select: none;
     display: flex;
     align-items: center;
@@ -127,6 +133,7 @@
     text-align: center;
     color: $text-primary-transparent;
     font-style: italic;
+    font-size: 0.9rem;
     margin-top: 2rem;
 }
 
@@ -158,6 +165,7 @@
     display: none;
     align-items: center;
     justify-content: center;
+    font-family: inherit;
 }
 
 .card:hover .delete-btn {
@@ -175,7 +183,7 @@
 
 .label {
     margin-top: 0.5rem;
-    font-size: 0.75rem;
+    font-size: 0.85rem;
     font-weight: bold;
     color: #0FBD8C;
     word-break: break-all;
@@ -228,7 +236,7 @@
 .legend-item {
     display: flex;
     align-items: center;
-    font-size: 0.75rem;
+    font-size: 0.85rem;
     color: $text-primary;
 }
 
