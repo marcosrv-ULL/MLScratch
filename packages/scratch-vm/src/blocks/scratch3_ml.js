@@ -308,7 +308,7 @@ class MLBlocks {
         const modelName = Cast.toString(args.MODEL_NAME) || 'default_model';
         const model = this.runtime.mlModels[modelName];
         if (!model) return 0;
-        return model.lastConfidence;
+        return model.lastConfidence + "%";
     }
 
     setCanvasArea(args, util) {

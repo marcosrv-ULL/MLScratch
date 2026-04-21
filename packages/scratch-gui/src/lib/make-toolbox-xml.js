@@ -84,6 +84,12 @@ const machineLearning = function (isInitialSetup, isStage, targetId) {
                 <shadow type="ml_dataset_menu"></shadow>
             </value>
         </block>
+
+        <block type="ml_when_model_trained">
+            <value name="MODEL_NAME">
+                <shadow type="ml_model_menu"></shadow>
+            </value>
+        </block>
         
         ${blockSeparator}
         `}
@@ -100,7 +106,7 @@ const machineLearning = function (isInitialSetup, isStage, targetId) {
             </value>
         </block>
 
-        <block type="ml_when_model_trained">
+        <block type="ml_get_confidence">
             <value name="MODEL_NAME">
                 <shadow type="ml_model_menu"></shadow>
             </value>

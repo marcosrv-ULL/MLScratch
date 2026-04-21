@@ -382,10 +382,16 @@ export default function defineMachineLearningBlocks(ScratchBlocks) {
     ScratchBlocks.Blocks['ml_get_confidence'] = {
         init: function () {
             this.jsonInit({
-                "message0": "porcentaje de seguridad %",
+                "message0": "Confianza en la predicción del modelo %1",
+                "args0": [
+                    {
+                        "type": "input_value",
+                        "name": "MODEL_NAME"
+                    }
+                ],
                 "category": "Machine Learning",
                 "colour": ML_COLOR,
-                "output": "Number",
+                "output": "String", 
                 "outputShape": ScratchBlocks.OUTPUT_SHAPE_ROUND
             });
         }
