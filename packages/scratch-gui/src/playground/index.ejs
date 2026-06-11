@@ -19,16 +19,16 @@
               var urlStr = stringUrl.toString();
               
               // Detect if running on GitHub Pages
-              var isGitHubPages = window.location.pathname.indexOf('/MLScratch') !== -1;
-              
+              var isGitHubPages = window.location.pathname.indexOf('/MLScratch') !== -1; // MLScratch
+              console.log(isGitHubPages);
               if (isGitHubPages) {
-                  if (urlStr.indexOf('fetch-worker') !== -1 && urlStr.indexOf('/MLScratch/') === -1) {
+                  if (urlStr.indexOf('fetch-worker') !== -1 && urlStr.indexOf('/MLScratch/') === -1) { // MLScratch
                       // Extract just the filename to bypass relative path issues
                       var fetchFileName = urlStr.substring(urlStr.lastIndexOf('/') + 1);
-                      stringUrl = '/MLScratch/chunks/' + fetchFileName;
+                      stringUrl = '/MLScratch/chunks/' + fetchFileName; // MLScratch
                   } 
-                  else if (urlStr.indexOf('extension-worker.js') !== -1 && urlStr.indexOf('/MLScratch/') === -1) {
-                      stringUrl = '/MLScratch/extension-worker.js';
+                  else if (urlStr.indexOf('extension-worker.js') !== -1 && urlStr.indexOf('/MLScratch/') === -1) { // MLScratch
+                      stringUrl = '/MLScratch/extension-worker.js'; // MLScratch
                   }
               }
           }

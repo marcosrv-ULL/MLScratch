@@ -6,8 +6,8 @@ const OriginalWorker = window.Worker;
 window.Worker = function(stringUrl, options) {
     if (typeof stringUrl === 'string') {
         // Detect if the app is running on GitHub Pages or local environment
-        const isGitHubPages = window.location.pathname.startsWith('/MLScratch');
-        const basePath = isGitHubPages ? '/MLScratch' : '';
+        const isGitHubPages = window.location.pathname.startsWith('/'); // MLScratch
+        const basePath = isGitHubPages ? '/MLScratch' : ''; // MLScratch
 
         // Redirect storage fetch worker
         if (stringUrl.includes('fetch-worker')) {

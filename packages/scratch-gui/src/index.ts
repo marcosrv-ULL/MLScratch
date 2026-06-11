@@ -18,7 +18,7 @@ const OriginalWorker = window.Worker;
     if (typeof stringUrl === 'string') {
         // Redirect storage fetch worker
         if (stringUrl.startsWith('/chunks/fetch-worker')) {
-            stringUrl = '/MLScratch' + stringUrl;
+            stringUrl = '' + stringUrl; // MLScratch
         } 
         // Redirect VM extension worker
         else if (stringUrl === '/extension-worker.js') {
