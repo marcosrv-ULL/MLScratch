@@ -146,7 +146,7 @@ const distConfig = baseConfig.clone()
             // - if the publicPath is static here (defaults to `/`), they are unable to load their assets,
             // which depend on a relative path resolution.
             // (e.g. `/tmp/*path-to-packaged-dist*/static/assets` in scratch-desktop)
-            publicPath: '/MLScratch', // MLScratch
+            publicPath: '/', // MLScratch
             path: path.resolve(__dirname, 'dist')
         }
     })
