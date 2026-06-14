@@ -7,23 +7,21 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 
 const ScratchWebpackConfigBuilder = require('scratch-webpack-configuration');
 
-// const STATIC_PATH = process.env.STATIC_PATH || '/static';
+// =======================================================================
+// NUEVO: Variable dinámica para la ruta base.
+// Si construimos para producción (GitHub Pages), usa el subdirectorio.
+// Si estamos en local (npm start), usa la raíz (/).
+// =======================================================================
+const basePath = process.env.NODE_ENV === 'production' ? '/MLScratch/' : '/';
 
 const commonHtmlWebpackPluginOptions = {
-    // Google Tag Manager ID
-    // Looks like 'GTM-XXXXXXX'
     gtm_id: process.env.GTM_ID || '',
-
-    // Google Tag Manager env & auth info for alterative GTM environments
-    // Looks like '&gtm_auth=0123456789abcdefghijklm&gtm_preview=env-00&gtm_cookies_win=x'
-    // Taken from the middle of: GTM -> Admin -> Environments -> (environment) -> Get Snippet
-    // Blank for production
     gtm_env_auth: process.env.GTM_ENV_AUTH || ''
 };
 
 const cssModuleExceptions = [
-    /\.raw\.css$/, // Allow for overriding CSS classes from libraries
-    /[\\/]driver\.js[\\/].*\.css$/ // driver.js CSS
+    /\.raw\.css$/, 
+    /[\\/]driver\.js[\\/].*\.css$/ 
 ];
 
 const baseConfig = new ScratchWebpackConfigBuilder(
@@ -37,29 +35,27 @@ const baseConfig = new ScratchWebpackConfigBuilder(
     .setTarget('browserslist')
     // =======================================================================
     // FIX FOR GITHUB PAGES SUBDIRECTORY DEPLOYMENT (scratch-storage)
-    // Intercepts the hardcoded absolute path to the fetch-worker chunk
-    // and prepends the GitHub repository name.
     // =======================================================================
     .addModuleRule({
         test: /scratch-storage[\\/]dist[\\/]web[\\/]scratch-storage\.js$/,
         loader: 'string-replace-loader',
         options: {
             search: 'chunks/fetch-worker',
-            replace: 'chunks/fetch-worker',
+            // NUEVO: Añadimos dinámicamente el basePath al reemplazo
+            replace: `${basePath}chunks/fetch-worker`,
             flags: 'g'
         }
     })
     // =======================================================================
     // FIX FOR GITHUB PAGES SUBDIRECTORY DEPLOYMENT (scratch-vm)
-    // Intercepts the hardcoded absolute path to the extension-worker
-    // and prepends the GitHub repository name.
     // =======================================================================
     .addModuleRule({
         test: /scratch-vm[\\/]dist[\\/]web[\\/]scratch-vm\.js$/,
         loader: 'string-replace-loader',
         options: {
             search: 'extension-worker.js',
-            replace: 'extension-worker.js',
+            // NUEVO: Añadimos dinámicamente el basePath al reemplazo
+            replace: `${basePath}extension-worker.js`,
             flags: 'g'
         }
     })
@@ -70,8 +66,6 @@ const baseConfig = new ScratchWebpackConfigBuilder(
                 name: 'GUI',
                 type: 'umd2'
             },
-            // Do not clean the JS files before building as we have two outputs to the same
-            // dist directory (the regular and the standalone version)
             clean: false
         },
         resolve: {
@@ -83,8 +77,8 @@ const baseConfig = new ScratchWebpackConfigBuilder(
     })
     .addModuleRule({
         test: /\.(svg|png|wav|mp3|gif|jpg)$/,
-        resourceQuery: /^$/, // reject any query string
-        type: 'asset' // let webpack decide on the best type of asset
+        resourceQuery: /^$/, 
+        type: 'asset' 
     })
     .addPlugin(new webpack.DefinePlugin({
         'process.env.DEBUG': Boolean(process.env.DEBUG),
@@ -94,40 +88,13 @@ const baseConfig = new ScratchWebpackConfigBuilder(
     }))
     .addPlugin(new CopyWebpackPlugin({
         patterns: [
-            {
-                from: '../../node_modules/scratch-blocks/media',
-                to: 'static/blocks-media/default'
-            },
-            {
-                from: '../../node_modules/scratch-blocks/media',
-                to: 'static/blocks-media/high-contrast'
-            },
-            {
-                // overwrite some of the default block media with high-contrast versions
-                // this entry must come after copying scratch-blocks/media into the high-contrast directory
-                from: 'src/lib/settings/color-mode/high-contrast/blocks-media',
-                to: 'static/blocks-media/high-contrast',
-                force: true
-            },
-            {
-                context: '../../node_modules/@scratch/scratch-vm/dist/web',
-                from: 'extension-worker.{js,js.map}',
-                noErrorOnMissing: true
-            },
-            {
-                context: '../../node_modules/scratch-storage/dist/web',
-                from: 'chunks/fetch-worker.*.{js,js.map}',
-                noErrorOnMissing: true
-            },
-            {
-                context: '../../node_modules/scratch-storage/dist/web',
-                from: 'chunks/vendors-*.{js,js.map}',
-                noErrorOnMissing: true
-            },
-            {
-                from: '../../node_modules/@mediapipe/face_detection',
-                to: 'chunks/mediapipe/face_detection'
-            }
+            { from: '../../node_modules/scratch-blocks/media', to: 'static/blocks-media/default' },
+            { from: '../../node_modules/scratch-blocks/media', to: 'static/blocks-media/high-contrast' },
+            { from: 'src/lib/settings/color-mode/high-contrast/blocks-media', to: 'static/blocks-media/high-contrast', force: true },
+            { context: '../../node_modules/@scratch/scratch-vm/dist/web', from: 'extension-worker.{js,js.map}', noErrorOnMissing: true },
+            { context: '../../node_modules/scratch-storage/dist/web', from: 'chunks/fetch-worker.*.{js,js.map}', noErrorOnMissing: true },
+            { context: '../../node_modules/scratch-storage/dist/web', from: 'chunks/vendors-*.{js,js.map}', noErrorOnMissing: true },
+            { from: '../../node_modules/@mediapipe/face_detection', to: 'chunks/mediapipe/face_detection' }
         ]
     }));
 
@@ -135,46 +102,28 @@ if (!process.env.CI) {
     baseConfig.addPlugin(new webpack.ProgressPlugin());
 }
 
-// build the shipping library in `dist/`
 const distConfig = baseConfig.clone()
     .merge({
         entry: {
             'scratch-gui': path.join(__dirname, 'src/index.ts')
         },
         output: {
-            // We need the public path to be relative, because of scratch-desktop and scratch-android
-            // - if the publicPath is static here (defaults to `/`), they are unable to load their assets,
-            // which depend on a relative path resolution.
-            // (e.g. `/tmp/*path-to-packaged-dist*/static/assets` in scratch-desktop)
-            publicPath: '/MLScratch', // MLScratch
+            // NUEVO: Usar la variable basePath
+            publicPath: basePath, 
             path: path.resolve(__dirname, 'dist')
         }
     })
     .addExternals(['react', 'react-dom', 'redux', 'react-redux'])
-    .addPlugin(
-        new CopyWebpackPlugin({
-            patterns: [
-                {
-                    from: 'src/lib/libraries/*.json',
-                    to: 'libraries',
-                    flatten: true
-                }
-            ]
-        })
-    );
+    .addPlugin(new CopyWebpackPlugin({
+        patterns: [{ from: 'src/lib/libraries/*.json', to: 'libraries', flatten: true }]
+    }));
 
-// build the shipping library in `dist/` bundled with react, react-dom, redux, etc.
 const distStandaloneConfig = baseConfig.clone()
     .merge({
-        entry: {
-            'scratch-gui-standalone': path.join(__dirname, 'src/index-standalone.tsx')
-        },
-        output: {
-            path: path.resolve(__dirname, 'dist')
-        }
+        entry: { 'scratch-gui-standalone': path.join(__dirname, 'src/index-standalone.tsx') },
+        output: { path: path.resolve(__dirname, 'dist') }
     });
 
-// build the examples and debugging tools in `build/`
 const buildConfig = baseConfig.clone()
     .enableDevServer(process.env.PORT || 8601)
     .merge({
@@ -187,66 +136,22 @@ const buildConfig = baseConfig.clone()
         },
         output: {
             path: path.resolve(__dirname, 'build'),
-
-            // This output is loaded using a file:// scheme from the local file system.
-            // Having `publicPath: '/'` (the default) means the `gui.js` file in `build/index.html`
-            // would be looked for at the root of the filesystem, which is incorrect.
-            // Hence, we're resetting the public path to be relative.
-            publicPath: '/' // MLScratch
+            // NUEVO: Usar la variable basePath para arreglar el error 404 del gui.js
+            publicPath: basePath 
         }
     })
-    .addPlugin(new HtmlWebpackPlugin({
-        ...commonHtmlWebpackPluginOptions,
-        chunks: ['gui'],
-        template: 'src/playground/index.ejs',
-        title: 'ML Scratch'
-    }))
-    .addPlugin(new HtmlWebpackPlugin({
-        ...commonHtmlWebpackPluginOptions,
-        chunks: ['guistandalone'],
-        filename: 'standalone.html',
-        template: 'src/playground/index.ejs',
-        title: 'ML Scratch: Standalone Mode'
-    }))
-    .addPlugin(new HtmlWebpackPlugin({
-        ...commonHtmlWebpackPluginOptions,
-        chunks: ['blocksonly'],
-        filename: 'blocks-only.html',
-        template: 'src/playground/index.ejs',
-        title: 'ML Scratch: Blocks Only Example'
-    }))
-    .addPlugin(new HtmlWebpackPlugin({
-        ...commonHtmlWebpackPluginOptions,
-        chunks: ['compatibilitytesting'],
-        filename: 'compatibility-testing.html',
-        template: 'src/playground/index.ejs',
-        title: 'ML Scratch: Compatibility Testing'
-    }))
-    .addPlugin(new HtmlWebpackPlugin({
-        ...commonHtmlWebpackPluginOptions,
-        chunks: ['player'],
-        filename: 'player.html',
-        template: 'src/playground/index.ejs',
-        title: 'ML Scratch: Player Example'
-    }))
+    .addPlugin(new HtmlWebpackPlugin({ ...commonHtmlWebpackPluginOptions, chunks: ['gui'], template: 'src/playground/index.ejs', title: 'ML Scratch' }))
+    .addPlugin(new HtmlWebpackPlugin({ ...commonHtmlWebpackPluginOptions, chunks: ['guistandalone'], filename: 'standalone.html', template: 'src/playground/index.ejs', title: 'ML Scratch: Standalone Mode' }))
+    .addPlugin(new HtmlWebpackPlugin({ ...commonHtmlWebpackPluginOptions, chunks: ['blocksonly'], filename: 'blocks-only.html', template: 'src/playground/index.ejs', title: 'ML Scratch: Blocks Only Example' }))
+    .addPlugin(new HtmlWebpackPlugin({ ...commonHtmlWebpackPluginOptions, chunks: ['compatibilitytesting'], filename: 'compatibility-testing.html', template: 'src/playground/index.ejs', title: 'ML Scratch: Compatibility Testing' }))
+    .addPlugin(new HtmlWebpackPlugin({ ...commonHtmlWebpackPluginOptions, chunks: ['player'], filename: 'player.html', template: 'src/playground/index.ejs', title: 'ML Scratch: Player Example' }))
     .addPlugin(new CopyWebpackPlugin({
         patterns: [
-            {
-                from: 'static',
-                to: 'static'
-            },
-            {
-                from: 'extensions/**',
-                to: 'static',
-                context: 'src/examples'
-            }
+            { from: 'static', to: 'static' },
+            { from: 'extensions/**', to: 'static', context: 'src/examples' }
         ]
     }));
 
-// Skip building `dist/` unless explicitly requested
-// It roughly doubles build time and isn't needed for `scratch-gui` development
-// If you need non-production `dist/` for local dev, such as for `scratch-www` work, you can run something like:
-// `BUILD_MODE=dist npm run build`
 const buildDist = process.env.NODE_ENV === 'production' || process.env.BUILD_MODE === 'dist';
 
 let config;
