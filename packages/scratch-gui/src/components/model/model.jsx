@@ -3,7 +3,6 @@ import PropTypes from 'prop-types';
 import classNames from 'classnames';
 
 import styles from './models.css';
-
 class ModelsComponent extends React.Component {
     constructor(props) {
         super(props);
@@ -131,7 +130,7 @@ class ModelsComponent extends React.Component {
                     
                     {/* The Zero Error Goal Line (Target) */}
                     <line x1={paddingLeft} y1={paddingTop + graphHeight} x2={width - paddingRight} y2={paddingTop + graphHeight} stroke="#0FBD8C" strokeWidth="2" strokeDasharray="4 4" />
-                    <text x={width - paddingRight} y={paddingTop + graphHeight - 5} textAnchor="end" fill="#0FBD8C" fontSize="9" fontWeight="bold">Objetivo: 0 Fallos</text>
+                    <text x={width - paddingRight} y={paddingTop + graphHeight - 5} textAnchor="end" fill="#0FBD8C" fontSize="9" fontWeight="bold">Objetivo: Ningún Fallo</text>
 
                     {/* Numerical Y-Axis labels */}
                     <text x={paddingLeft - 5} y={paddingTop + 4} textAnchor="end" fill="#575E75" fontSize="10">{maxLoss.toFixed(2)}</text>
