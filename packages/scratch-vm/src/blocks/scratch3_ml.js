@@ -159,8 +159,15 @@ class MLBlocks {
         return new Promise(async (resolve) => {
             
             if (model.algorithm === 'NeuralNetwork') {
+                
+                // Calculate an absolute batch size to prevent fractional calculations from rounding down to 0
+                // Cap the maximum batch size at 24 to preserve memory
+                const safeBatchSize = Math.max(1, Math.min(24, dataset.length));
+
                 const featureExtractor = window.ml5.featureExtractor('MobileNet', {
-                    numLabels: new Set(dataset.map(d => d.label)).size
+                    numLabels: new Set(dataset.map(d => d.label)).size,
+                    batchSize: safeBatchSize,
+                    epochs: 50 // Explicitly setting epochs ensures consistent training duration
                 });
                 
                 const classifier = featureExtractor.classification();
