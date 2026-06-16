@@ -258,7 +258,7 @@ export default function defineMachineLearningBlocks(ScratchBlocks) {
                         "type": "field_dropdown",
                         "name": "MODE",
                         "options": [
-                            ["entrenar", "train"],
+                            ["recolectar", "train"],
                             ["predecir", "predict"]
                         ]
                     }

@@ -259,7 +259,8 @@ class DatasetComponent extends React.Component {
             editingLabelId: null,
             matrixViewItem: null // Stores the item to be viewed in the modal
         };
-        this.updateInterval = null;
+        this.animationFrameId = null;
+        this.lastVmSignature = '';
         this.fileInputRef = React.createRef();
 
         // Binding methods
@@ -269,57 +270,54 @@ class DatasetComponent extends React.Component {
         this.triggerFileInput = this.triggerFileInput.bind(this);
         this.handleDelete = this.handleDelete.bind(this);
         this.saveLabel = this.saveLabel.bind(this);
+        this.syncWithVM = this.syncWithVM.bind(this);
+    }
+
+    // High performance UI sync bound to the browser's render loop
+    syncWithVM() {
+        try {
+            const vm = this.props.vm || window.vm;
+            if (vm && vm.runtime && vm.runtime.mlDatasets) {
+                const vmSelected = vm.runtime.currentSelectedDataset || 'default';
+                let currentSignature = vmSelected + '|';
+                
+                // Build a lightweight state signature based on dataset sizes
+                for (const key in vm.runtime.mlDatasets) {
+                    const len = vm.runtime.mlDatasets[key] ? vm.runtime.mlDatasets[key].length : 0;
+                    currentSignature += `${key}:${len}|`;
+                }
+
+                // Update only if the signature changed and no label is currently being edited
+                if (this.lastVmSignature !== currentSignature && this.state.editingLabelId === null) {
+                    this.lastVmSignature = currentSignature;
+                    
+                    const clonedDatasets = {};
+                    for (const key in vm.runtime.mlDatasets) {
+                        clonedDatasets[key] = [...vm.runtime.mlDatasets[key]];
+                    }
+                    
+                    this.setState({
+                        datasets: clonedDatasets,
+                        selectedDataset: vmSelected
+                    });
+                }
+            }
+        } catch (err) {
+            console.warn("[Dataset Tab] Sync error:", err);
+        }
+        
+        // Loop the synchronization with the native 60fps paint cycle
+        this.animationFrameId = requestAnimationFrame(this.syncWithVM);
     }
 
     componentDidMount() {
-        this.updateInterval = setInterval(() => {
-            try {
-                const vm = this.props.vm || window.vm;
-                if (vm && vm.runtime && vm.runtime.mlDatasets) {
-                    const vmSelected = vm.runtime.currentSelectedDataset || 'default';
-                    let hasChanges = false;
-                    
-                    if (vmSelected !== this.state.selectedDataset) {
-                        hasChanges = true;
-                    }
-                    
-                    const vmKeys = Object.keys(vm.runtime.mlDatasets);
-                    const stateKeys = Object.keys(this.state.datasets);
-                    
-                    if (vmKeys.length !== stateKeys.length) {
-                        hasChanges = true;
-                    } else {
-                        for (let key of vmKeys) {
-                            const vmLen = vm.runtime.mlDatasets[key] ? vm.runtime.mlDatasets[key].length : 0;
-                            const stateLen = this.state.datasets[key] ? this.state.datasets[key].length : 0;
-                            if (vmLen !== stateLen) {
-                                hasChanges = true;
-                                break;
-                            }
-                        }
-                    }
-
-                    // Only sync if not currently editing a label to prevent interruption
-                    if (hasChanges && this.state.editingLabelId === null) {
-                        const clonedDatasets = {};
-                        for (let key in vm.runtime.mlDatasets) {
-                            clonedDatasets[key] = [...vm.runtime.mlDatasets[key]];
-                        }
-                        this.setState({
-                            datasets: clonedDatasets,
-                            selectedDataset: vmSelected
-                        });
-                    }
-                }
-            } catch (err) {
-                console.warn("[Dataset Tab] Sync error:", err);
-            }
-        }, 500);
+        // Start the native sync loop
+        this.animationFrameId = requestAnimationFrame(this.syncWithVM);
     }
 
     componentWillUnmount() {
-        if (this.updateInterval) {
-            clearInterval(this.updateInterval);
+        if (this.animationFrameId) {
+            cancelAnimationFrame(this.animationFrameId);
         }
     }
 

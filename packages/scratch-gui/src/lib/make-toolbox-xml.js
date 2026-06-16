@@ -33,7 +33,7 @@ const machineLearning = function (isInitialSetup, isStage, targetId) {
         </block>
 
         <block type="ml_set_area_mode">
-            <field name="MODE">entrenar</field>
+            <field name="MODE">recolectar</field>
         </block>
 
         <block type="ml_move_canvas_area">

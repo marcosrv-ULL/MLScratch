@@ -13,10 +13,10 @@ class MLBlocks {
         this.runtime.mlModels = {};
 
         this.runtime.mlDatasets = {
-            'default': [] 
+            'Predeterminado': [] 
         };
         
-        this.runtime.currentSelectedDataset = 'default';
+        this.runtime.currentSelectedDataset = 'Predeterminado';
 
         this.mlArea = { x: 0, y: 0, width: 100, height: 100 };
         this.isAreaDefined = false;
@@ -37,6 +37,12 @@ class MLBlocks {
         }
 
         this.runtime.on('GUI_RETRAIN_MODEL', this._handleGuiRetrain.bind(this));
+
+        // Bridge exposed to the React UI to allow live visual preview
+        this.runtime.getMLAreaImage = () => {
+            if (!this.isAreaDefined) return null;
+            return this.extractImageFromArea(this.mlArea);
+        };
     }
 
     onStopAll() {
@@ -315,7 +321,7 @@ class MLBlocks {
         const modelName = Cast.toString(args.MODEL_NAME) || 'default_model';
         const model = this.runtime.mlModels[modelName];
         if (!model) return 0;
-        return model.lastConfidence + "%";
+        return model.lastConfidence;
     }
 
     setCanvasArea(args, util) {
@@ -408,7 +414,7 @@ class MLBlocks {
         renderer.setDrawableOrder(this._boxDrawableId, Infinity); 
     }
 
-    _saveToDataset(label, image, datasetName = 'default') {
+    _saveToDataset(label, image, datasetName = 'Predeterminado') {
         if (!this.runtime.mlDatasets[datasetName]) {
             this.runtime.mlDatasets[datasetName] = [];
         }
@@ -429,7 +435,7 @@ class MLBlocks {
         this.runtime.renderer.draw();
 
         const label = Cast.toString(args.LABEL);
-        const datasetName = Cast.toString(args.LABEL1) || 'default'; 
+        const datasetName = Cast.toString(args.LABEL1) || 'Predeterminado'; 
         
         const base64Image = this.extractImageFromArea(this.mlArea);
         if (base64Image) {
@@ -447,7 +453,7 @@ class MLBlocks {
 
         const target = util.target;
         const label = Cast.toString(args.LABEL);
-        const datasetName = Cast.toString(args.DATASET) || 'default'; 
+        const datasetName = Cast.toString(args.DATASET) || 'Predeterminado'; 
         
         const originalCostumeIndex = target.currentCostume;
         const originalX = target.x;
